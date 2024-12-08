@@ -1,9 +1,8 @@
-use crate::infrastructure::render::{Rectangle, SDLRenderer};
-use crate::{actor, transform};
-use crate::transform::Vector2;
+use crate::actor;
+use crate::core::render::SDLRenderer;
+use crate::core::vector::Vector2;
 use sdl2::event::Event;
 use sdl2::{EventPump, Sdl};
-use sdl2::keyboard::Keycode;
 
 /// The top layer system responsible for calling and managing all other subsystems.
 pub struct Game {
@@ -41,29 +40,43 @@ impl Game {
         let timer = self.context.timer().unwrap();
         let mut ticks = timer.ticks64();
         while self.running {
-            let delta = transform::clamp((timer.ticks64() - ticks) as f64 / 1000.0, 0.0, 0.05);
+            let delta =
+                crate::core::vector::clamp((timer.ticks64() - ticks) as f64 / 1000.0, 0.0, 0.05);
             // Updates the current ticks to allow us to calculate delta time
             ticks = timer.ticks64();
             while timer.ticks64() < ticks + 16 {}
 
-            self.process_input(delta, &mut events);
+            self.process_input(&mut events);
 
             // Update game objects
             self.left_paddle.update(delta);
             self.right_paddle.update(delta);
 
             // Render game objects
-            self.renderer.render(&[&self.left_paddle.render_component, &self.right_paddle.render_component]);
+            self.renderer.render(&[
+                &self.left_paddle.render_component,
+                &self.right_paddle.render_component,
+            ]);
         }
     }
 
-    fn process_input(&mut self, delta: f64, events: &mut EventPump) {
+    fn process_input(&mut self, events: &mut EventPump) {
         // Iterate over all queued input events and process each in order
         for event in events.poll_iter() {
             match event {
-                Event::KeyDown { .. } => {
-                    self.left_paddle.on_key_down(delta, Keycode::UP);
-                    self.right_paddle.on_key_down(delta, Keycode::UP);
+                Event::KeyDown { scancode, .. } => {
+                    if scancode.is_none() {
+                        continue;
+                    }
+                    self.left_paddle.on_key_down(scancode.unwrap());
+                    self.right_paddle.on_key_down(scancode.unwrap());
+                }
+                Event::KeyUp { scancode, .. } => {
+                    if scancode.is_none() {
+                        continue;
+                    }
+                    self.left_paddle.on_key_up(scancode.unwrap());
+                    self.right_paddle.on_key_up(scancode.unwrap());
                 }
                 Event::Quit { .. } => {
                     println!("Received shutdown event, closing game.");

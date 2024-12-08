@@ -1,12 +1,11 @@
-use crate::infrastructure::render::{Rectangle, SDLDrawable};
-use crate::transform::Vector2;
-use sdl2::keyboard::Keycode;
+use crate::core::render::{Rectangle, SDLDrawable};
+use crate::core::vector::Vector2;
+use sdl2::keyboard::Scancode;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
-use std::fmt::Debug;
 
 trait Component {
-    fn update(&mut self, delta: f64) {}
+    fn update(&mut self, _delta: f64) {}
 }
 
 pub struct RenderComponent {
@@ -34,8 +33,6 @@ impl SDLDrawable for RenderComponent {
 #[derive(Clone, Copy)]
 struct TransformComponent {
     position: Vector2,
-    rotation: Vector2,
-    scale: Vector2,
 }
 
 impl Component for TransformComponent {}
@@ -43,6 +40,7 @@ impl Component for TransformComponent {}
 pub struct Paddle {
     pub render_component: RenderComponent,
     transform: TransformComponent,
+    direction: Vector2,
 }
 
 impl Paddle {
@@ -55,29 +53,34 @@ impl Paddle {
                 }),
                 transform_component: TransformComponent {
                     position: position.clone(),
-                    rotation: Vector2::new(0, 0),
-                    scale: Vector2::new(1, 1),
                 },
             },
             transform: TransformComponent {
                 position: position.clone(),
-                rotation: Vector2::new(0, 0),
-                scale: Vector2::new(1, 1),
             },
+            direction: Vector2::zero(),
         }
     }
 
     pub fn update(&mut self, delta: f64) {
+        self.transform.position.y += (self.direction.y as f64 * 100.0f64 * delta) as i32;
+
         self.render_component.update(delta);
         self.render_component.set_position(self.transform.position);
         self.transform.update(delta);
     }
 
-    pub fn on_key_down(&mut self, delta: f64, key_code: Keycode) {
-        match key_code {
-            Keycode::UP => {
-                self.transform.position.y -= (200.0 * delta) as i32;
-            }
+    pub fn on_key_down(&mut self, code: Scancode) {
+        self.direction.y = match code {
+            Scancode::Up => -1,
+            Scancode::Down => 1,
+            _ => 0,
+        };
+    }
+
+    pub fn on_key_up(&mut self, code: Scancode) {
+        match code {
+            Scancode::Up | Scancode::Down => self.direction.y = 0,
             _ => {}
         }
     }

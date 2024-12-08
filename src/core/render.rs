@@ -1,4 +1,4 @@
-use crate::transform::Vector2;
+use crate::core::vector::Vector2;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
@@ -6,7 +6,7 @@ use sdl2::video::Window;
 
 pub trait SDLDrawable {
     fn draw(&self, canvas: &mut Canvas<Window>);
-    fn set_position(&mut self, position: Vector2) {}
+    fn set_position(&mut self, _position: Vector2) {}
 }
 
 pub struct SDLRenderer {
