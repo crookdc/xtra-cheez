@@ -1,33 +1,76 @@
-use crate::infrastructure::render::Renderer;
+use crate::infrastructure::render::{Rectangle, SDLRenderer};
+use crate::{actor, transform};
+use crate::transform::Vector2;
 use sdl2::event::Event;
+use sdl2::{EventPump, Sdl};
+use sdl2::keyboard::Keycode;
 
+/// The top layer system responsible for calling and managing all other subsystems.
 pub struct Game {
     running: bool,
-    pub renderer: Box<dyn Renderer>,
+    context: Sdl,
+    pub renderer: SDLRenderer,
+    left_paddle: actor::Paddle,
+    right_paddle: actor::Paddle,
 }
 
 impl Game {
-    pub fn new(renderer: Box<dyn Renderer>) -> Self {
+    /// Creates a new 'batteries included' instance of Game without the caller needing to set up
+    /// SDL dependencies
+    pub fn init(title: &String, size: Vector2) -> Self {
+        let context = sdl2::init().unwrap();
+        let video = context.video().unwrap();
+        let mut window = video
+            .window(title.as_str(), size.x as u32, size.y as u32)
+            .position_centered()
+            .build()
+            .unwrap();
+        window.show();
         Self {
             running: false,
-            renderer,
+            context,
+            renderer: SDLRenderer::new(window.into_canvas().build().unwrap()),
+            left_paddle: actor::Paddle::new(&Vector2::new(0, 175)),
+            right_paddle: actor::Paddle::new(&Vector2::new(580, 175)),
         }
     }
 
-    pub fn start(&mut self, context: sdl2::Sdl) {
+    pub fn start(&mut self) {
         self.running = true;
-        let mut events = context.event_pump().unwrap();
+        let mut events = self.context.event_pump().unwrap();
+        let timer = self.context.timer().unwrap();
+        let mut ticks = timer.ticks64();
         while self.running {
-            // Iterate over all queued input events
-            for event in events.poll_iter() {
-                match event {
-                    // If the Quit event is dispatched, close the game down
-                    Event::Quit { .. } => self.running = false,
-                    _ => {}
+            let delta = transform::clamp((timer.ticks64() - ticks) as f64 / 1000.0, 0.0, 0.05);
+            // Updates the current ticks to allow us to calculate delta time
+            ticks = timer.ticks64();
+            while timer.ticks64() < ticks + 16 {}
+
+            self.process_input(delta, &mut events);
+
+            // Update game objects
+            self.left_paddle.update(delta);
+            self.right_paddle.update(delta);
+
+            // Render game objects
+            self.renderer.render(&[&self.left_paddle.render_component, &self.right_paddle.render_component]);
+        }
+    }
+
+    fn process_input(&mut self, delta: f64, events: &mut EventPump) {
+        // Iterate over all queued input events and process each in order
+        for event in events.poll_iter() {
+            match event {
+                Event::KeyDown { .. } => {
+                    self.left_paddle.on_key_down(delta, Keycode::UP);
+                    self.right_paddle.on_key_down(delta, Keycode::UP);
                 }
+                Event::Quit { .. } => {
+                    println!("Received shutdown event, closing game.");
+                    self.running = false;
+                }
+                _ => {}
             }
-            // TODO: Update all in-scope game objects
-            self.renderer.render();
         }
     }
 }
