@@ -27,6 +27,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09d6582e104315a817dff97f75133544b2e094ee22447d2acf4a74e189ba06fc"
 
 [[package]]
+name = "psx"
+version = "0.1.0"
+dependencies = [
+ "sdl2",
+]
+
+[[package]]
 name = "sdl2"
 version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -47,13 +54,6 @@ dependencies = [
  "cfg-if",
  "libc",
  "version-compare",
-]
-
-[[package]]
-name = "skrutt"
-version = "0.1.0"
-dependencies = [
- "sdl2",
 ]
 
 [[package]]
