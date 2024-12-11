@@ -52,7 +52,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn add_resource() {
+    fn resource_registry_get() {
         let mut registry = ResourceRegistry::default();
         let world_width = WorldWidth(100.0);
         registry.register(world_width);
@@ -62,7 +62,7 @@ mod tests {
     }
 
     #[test]
-    fn get_resource_mut() {
+    fn resource_registry_get_mut() {
         let mut registry = ResourceRegistry::default();
         let world_width = WorldWidth(100.0);
         registry.register(world_width);
