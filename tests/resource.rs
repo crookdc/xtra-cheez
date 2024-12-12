@@ -21,4 +21,17 @@ fn get_resource_mutable() {
     assert_eq!(fps.0, 61);
 }
 
+#[test]
+fn delete_resource() {
+    let mut world = World::new();
+    world.create_resource(FpsResource(60));
+    {
+        let fps = world.get_resource::<FpsResource>().unwrap();
+        assert_eq!(fps.0, 60);
+    }
+    world.delete_resource::<FpsResource>();
+    let fps = world.get_resource::<FpsResource>();
+    assert!(fps.is_none());
+}
+
 struct FpsResource(pub u32);
