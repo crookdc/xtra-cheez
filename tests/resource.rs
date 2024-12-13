@@ -1,4 +1,4 @@
-use psx::core::ecs::World;
+use psx::core::ecs::world::World;
 
 #[test]
 fn get_resource_immutable() {

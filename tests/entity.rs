@@ -1,4 +1,5 @@
-use psx::core::ecs::{Query, World};
+use psx::core::ecs::Query;
+use psx::core::ecs::world::World;
 
 #[test]
 fn query_entities() {
