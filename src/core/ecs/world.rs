@@ -48,10 +48,7 @@ impl World {
         self.entity_registry.set_entity_component(entity, component)
     }
 
-    pub fn get_entity_component<T: Any>(
-        &self,
-        entity: usize,
-    ) -> Option<Rc<RefCell<Box<dyn Any>>>> {
+    pub fn get_entity_component<T: Any>(&self, entity: usize) -> Option<Rc<RefCell<Box<dyn Any>>>> {
         self.entity_registry.get_entity_component::<T>(entity)
     }
 

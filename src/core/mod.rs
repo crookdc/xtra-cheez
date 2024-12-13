@@ -1,7 +1,6 @@
 use crate::core::ecs::world::World;
 use sdl2::event::Event;
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::{EventPump, Sdl};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -14,8 +13,10 @@ pub struct Engine {
     world: World,
     event_pump: EventPump,
     canvas: Canvas<sdl2::video::Window>,
-    systems: Vec<fn(&mut World)>,
+
+    systems: Vec<fn(&mut World, delta_time: f32)>,
     renderers: Vec<fn(&mut World, &mut Canvas<sdl2::video::Window>)>,
+    input_handlers: Vec<fn(&mut World, &Event)>,
 }
 
 impl Engine {
@@ -35,6 +36,7 @@ impl Engine {
             running: false,
             systems: vec![],
             renderers: vec![],
+            input_handlers: vec![],
         }
     }
 
@@ -42,7 +44,7 @@ impl Engine {
         &mut self.world
     }
 
-    pub fn register_system(&mut self, system: fn(&mut World)) {
+    pub fn register_system(&mut self, system: fn(&mut World, f32)) {
         self.systems.push(system);
     }
 
@@ -75,16 +77,23 @@ impl Engine {
             self.process_input();
             self.systems
                 .iter()
-                .for_each(|system| system(&mut self.world));
+                .for_each(|system| system(&mut self.world, delta_time));
             self.render();
         }
+    }
+
+    pub fn register_input_handler(&mut self, handler: fn(&mut World, &Event)) {
+        self.input_handlers.push(handler);
     }
 
     pub fn process_input(&mut self) {
         for event in self.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => self.running = false,
-                _ => {}
+                _ => self
+                    .input_handlers
+                    .iter()
+                    .for_each(|handler| handler(&mut self.world, &event)),
             }
         }
     }

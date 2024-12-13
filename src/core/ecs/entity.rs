@@ -19,10 +19,7 @@ impl EntityRegistry {
         self.components.get(&TypeId::of::<T>())
     }
 
-    pub fn get_entity_component<T: Any>(
-        &self,
-        entity: usize,
-    ) -> Option<Rc<RefCell<Box<dyn Any>>>> {
+    pub fn get_entity_component<T: Any>(&self, entity: usize) -> Option<Rc<RefCell<Box<dyn Any>>>> {
         self.components
             .get(&TypeId::of::<T>())
             .map(|vec| vec.get(entity).unwrap().clone().unwrap())

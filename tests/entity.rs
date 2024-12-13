@@ -11,9 +11,7 @@ fn query_entities() {
     world.register_component::<Speed>();
 
     let entity = world.create_entity();
-    world
-        .attach_entity_component(entity, Location())
-        .unwrap();
+    world.attach_entity_component(entity, Location()).unwrap();
     world.attach_entity_component(entity, Speed()).unwrap();
 
     let query = Query::new().with::<Location>().with::<Speed>().build();
