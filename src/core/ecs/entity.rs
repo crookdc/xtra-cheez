@@ -1,8 +1,8 @@
+use crate::core::ecs::EcsError;
 use std::any::{Any, TypeId};
 use std::cell::RefCell;
 use std::collections::{HashMap, VecDeque};
 use std::rc::Rc;
-use crate::core::ecs::EcsError;
 
 #[derive(Default)]
 pub struct EntityRegistry {

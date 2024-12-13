@@ -1,5 +1,5 @@
-use psx::core::ecs::Query;
 use psx::core::ecs::world::World;
+use psx::core::ecs::Query;
 
 #[test]
 fn query_entities() {
@@ -11,13 +11,12 @@ fn query_entities() {
     world.register_component::<Speed>();
 
     let entity = world.create_entity();
-    world.attach_entity_component(entity, Location(1,2)).unwrap();
+    world
+        .attach_entity_component(entity, Location(1, 2))
+        .unwrap();
     world.attach_entity_component(entity, Speed(5.0)).unwrap();
 
-    let query = Query::new()
-        .with::<Location>()
-        .with::<Speed>()
-        .build();
+    let query = Query::new().with::<Location>().with::<Speed>().build();
     let result = world.resolve(&query);
     assert_eq!(1, result.len());
     assert!(world.get_entity_component::<Location>(result[0]).is_some());

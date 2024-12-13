@@ -1,8 +1,9 @@
+use crate::core::ecs::entity::{EntityIterator, EntityRegistry};
+use crate::core::ecs::resource::ResourceRegistry;
+use crate::core::ecs::{EcsError, Query};
 use std::any::Any;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::core::ecs::{EcsError, Query, ResourceRegistry};
-use crate::core::ecs::entity::{EntityIterator, EntityRegistry};
 
 #[derive(Default)]
 pub struct World {
