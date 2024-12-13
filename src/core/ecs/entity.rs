@@ -22,10 +22,10 @@ impl EntityRegistry {
     pub fn get_entity_component<T: Any>(
         &self,
         entity: usize,
-    ) -> Option<&Rc<RefCell<Box<dyn Any>>>> {
+    ) -> Option<Rc<RefCell<Box<dyn Any>>>> {
         self.components
             .get(&TypeId::of::<T>())
-            .map(|vec| vec.get(entity).unwrap().as_ref().unwrap())
+            .map(|vec| vec.get(entity).unwrap().clone().unwrap())
     }
 
     pub fn has_entity_component(&self, entity: usize, component: &TypeId) -> bool {

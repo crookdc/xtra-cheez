@@ -3,8 +3,8 @@ use psx::core::ecs::Query;
 
 #[test]
 fn query_entities() {
-    struct Location(i32, i32);
-    struct Speed(f32);
+    struct Location();
+    struct Speed();
 
     let mut world = World::new();
     world.register_component::<Location>();
@@ -12,9 +12,9 @@ fn query_entities() {
 
     let entity = world.create_entity();
     world
-        .attach_entity_component(entity, Location(1, 2))
+        .attach_entity_component(entity, Location())
         .unwrap();
-    world.attach_entity_component(entity, Speed(5.0)).unwrap();
+    world.attach_entity_component(entity, Speed()).unwrap();
 
     let query = Query::new().with::<Location>().with::<Speed>().build();
     let result = world.resolve(&query);
