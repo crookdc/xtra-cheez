@@ -39,7 +39,7 @@ impl EntityRegistry {
     pub fn create_entity(&mut self) -> usize {
         // If there are freed slots in the table already they should be containing all-None cells,
         // which means we can use them immediately without any clean-up. If there are no freed cells
-        // then we have no choice but to allocate a new column for the entity.
+        // then we have no choice but to allocate a new column for the actor.
         self.free_slots
             .pop_front()
             .or_else(|| Some(self.allocate_entity_slot()))
@@ -106,7 +106,7 @@ impl Iterator for EntityIterator {
             self.current += 1;
         }
         let res = Some(self.current);
-        // We should always increment the current entity slot by at least one, the while loops
+        // We should always increment the current actor slot by at least one, the while loops
         // around this statement is to ensure that we do not proceed with an 'empty' slot as that
         // would be wasteful. Some profiling should be used  to see if it perhaps ends up being more
         // wasteful to do this double iteration.
@@ -153,7 +153,7 @@ mod tests {
         let speed = &registry.get_components::<Speed>().unwrap()[entity];
         assert!(speed.is_none());
 
-        // Then register the speed component and assert that it has been added to the entity
+        // Then register the speed component and assert that it has been added to the actor
         registry.set_entity_component(entity, Speed(15.0)).unwrap();
         let speed = &registry.get_components::<Speed>().unwrap()[entity]
             .as_ref()
@@ -171,7 +171,7 @@ mod tests {
         registry.create_entity();
         registry.create_entity();
         registry.create_entity();
-        // Here we should have six entity slots, one for each entity. Next we simulate some of them
+        // Here we should have six actor slots, one for each actor. Next we simulate some of them
         // being freed.
         registry.free_slots.push_back(0);
         registry.free_slots.push_back(4);
@@ -184,7 +184,7 @@ mod tests {
         EntityIterator::new(&registry)
             .for_each(|entity| assert_eq!(entity, expected.pop_back().unwrap()));
 
-        // Now we create new entity, ideally this should have taken slot index 0 as it had been
+        // Now we create new actor, ideally this should have taken slot index 0 as it had been
         // declared as free.
         registry.create_entity();
         let mut expected = VecDeque::new();

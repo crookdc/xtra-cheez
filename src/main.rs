@@ -1,162 +1,227 @@
-use psx::core::ecs::world::World;
-use psx::core::ecs::Query;
-use psx::core::Engine;
-use sdl2::event::Event;
+use std::collections::HashSet;
+use gl::types::{GLint, GLvoid};
+use glam::{Mat4, Vec3};
+use image::ImageReader;
+use psx::core::render::shader::Shader;
+use sdl2::video::GLProfile;
+use std::f32::consts::PI;
+use std::time::SystemTime;
 use sdl2::keyboard::Scancode;
-use sdl2::rect::FRect;
-use sdl2::Sdl;
-
-struct Position(f32, f32);
-struct Velocity(f32, f32);
-struct Rectangle(f32, f32);
-struct MovementController {
-    up: Scancode,
-    down: Scancode,
-}
 
 fn main() {
-    let mut sdl = sdl2::init().unwrap();
-    let mut engine = Engine::new(&mut sdl);
-    engine.register_renderer(rectangle_renderer);
-    engine.register_system(physics);
-    engine.register_input_handler(movement);
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let gl_attr = video_subsystem.gl_attr();
+    gl_attr.set_context_profile(GLProfile::Core);
+    gl_attr.set_context_version(3, 3);
 
-    engine.get_world().register_component::<Position>();
-    engine.get_world().register_component::<Velocity>();
-    engine.get_world().register_component::<Rectangle>();
-    engine
-        .get_world()
-        .register_component::<MovementController>();
+    let window = video_subsystem
+        .window("psx", 800, 800)
+        .opengl()
+        .build()
+        .unwrap();
+    let _ctx = window.gl_create_context().unwrap();
+    gl::load_with(|name| video_subsystem.gl_get_proc_address(name) as *const _);
+    sdl_context.mouse().set_relative_mouse_mode(true);
 
-    let left_paddle = engine.get_world().create_entity();
-    engine
-        .get_world()
-        .attach_entity_component(left_paddle, Position(0.0, 0.0))
-        .unwrap();
-    engine
-        .get_world()
-        .attach_entity_component(left_paddle, Rectangle(20.0, 80.0))
-        .unwrap();
-    engine
-        .get_world()
-        .attach_entity_component(left_paddle, Velocity(0.0, 0.0))
-        .unwrap();
-    engine
-        .get_world()
-        .attach_entity_component(
-            left_paddle,
-            MovementController {
-                up: Scancode::W,
-                down: Scancode::S,
-            },
-        )
-        .unwrap();
+    debug_assert_eq!(gl_attr.context_profile(), GLProfile::Core);
+    debug_assert_eq!(gl_attr.context_version(), (3, 3));
 
-    let right_paddle = engine.get_world().create_entity();
-    engine
-        .get_world()
-        .attach_entity_component(right_paddle, Position(780.0, 0.0))
-        .unwrap();
-    engine
-        .get_world()
-        .attach_entity_component(right_paddle, Rectangle(20.0, 80.0))
-        .unwrap();
-    engine
-        .get_world()
-        .attach_entity_component(right_paddle, Velocity(0.0, 0.0))
-        .unwrap();
-    engine
-        .get_world()
-        .attach_entity_component(
-            right_paddle,
-            MovementController {
-                up: Scancode::Up,
-                down: Scancode::Down,
-            },
-        )
-        .unwrap();
+    let shader_program = unsafe {
+        Shader::from_source_files("shaders/vertex.glsl", "shaders/fragment.glsl").unwrap()
+    };
 
-    engine.run();
-}
+    let mut vao = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut vao);
+        debug_assert_ne!(vao, 0);
+    }
 
-fn movement(world: &mut World, event: &Event) {
-    let entities = world.resolve(
-        &Query::new()
-            .with::<MovementController>()
-            .with::<Velocity>()
-            .build(),
-    );
-    entities.iter().for_each(|entity| {
-        let movement_controller = world
-            .get_entity_component::<MovementController>(*entity)
-            .unwrap();
-        let velocity = world.get_entity_component::<Velocity>(*entity).unwrap();
-        match event {
-            Event::KeyDown { scancode, .. } => {
-                if scancode.unwrap()
-                    == movement_controller
-                        .borrow()
-                        .downcast_ref::<MovementController>()
-                        .unwrap()
-                        .up
-                {
-                    velocity.borrow_mut().downcast_mut::<Velocity>().unwrap().1 = -100.0;
-                } else if scancode.unwrap()
-                    == movement_controller
-                        .borrow()
-                        .downcast_ref::<MovementController>()
-                        .unwrap()
-                        .down
-                {
-                    velocity.borrow_mut().downcast_mut::<Velocity>().unwrap().1 = 100.0;
+    let mut vbo = 0;
+    unsafe {
+        gl::GenBuffers(1, &mut vbo);
+        debug_assert_ne!(vbo, 0);
+    }
+
+    unsafe {
+        gl::BindVertexArray(vao);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        let vertices: [f32; 180] = [
+            -0.5, -0.5, -0.5,  0.0, 0.0,
+            0.5, -0.5, -0.5,  1.0, 0.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            -0.5,  0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 0.0,
+
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            0.5, -0.5,  0.5,  1.0, 0.0,
+            0.5,  0.5,  0.5,  1.0, 1.0,
+            0.5,  0.5,  0.5,  1.0, 1.0,
+            -0.5,  0.5,  0.5,  0.0, 1.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+
+            -0.5,  0.5,  0.5,  1.0, 0.0,
+            -0.5,  0.5, -0.5,  1.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            -0.5,  0.5,  0.5,  1.0, 0.0,
+
+            0.5,  0.5,  0.5,  1.0, 0.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            0.5, -0.5, -0.5,  0.0, 1.0,
+            0.5, -0.5, -0.5,  0.0, 1.0,
+            0.5, -0.5,  0.5,  0.0, 0.0,
+            0.5,  0.5,  0.5,  1.0, 0.0,
+
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+            0.5, -0.5, -0.5,  1.0, 1.0,
+            0.5, -0.5,  0.5,  1.0, 0.0,
+            0.5, -0.5,  0.5,  1.0, 0.0,
+            -0.5, -0.5,  0.5,  0.0, 0.0,
+            -0.5, -0.5, -0.5,  0.0, 1.0,
+
+            -0.5,  0.5, -0.5,  0.0, 1.0,
+            0.5,  0.5, -0.5,  1.0, 1.0,
+            0.5,  0.5,  0.5,  1.0, 0.0,
+            0.5,  0.5,  0.5,  1.0, 0.0,
+            -0.5,  0.5,  0.5,  0.0, 0.0,
+            -0.5,  0.5, -0.5,  0.0, 1.0
+        ];
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
+            size_of_val(&vertices) as isize,
+            vertices.as_ptr().cast(),
+            gl::STATIC_DRAW,
+        );
+        gl::VertexAttribPointer(
+            0,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (5 * size_of::<f32>()) as GLint,
+            0 as *const _,
+        );
+        gl::EnableVertexAttribArray(0);
+        gl::VertexAttribPointer(
+            1,
+            2,
+            gl::FLOAT,
+            gl::FALSE,
+            (5 * size_of::<f32>()) as GLint,
+            (3 * size_of::<f32>()) as *const GLvoid,
+        );
+        gl::EnableVertexAttribArray(1);
+
+        gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+        gl::BindVertexArray(0);
+
+        gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+    }
+
+    let texture = unsafe {
+      let img = ImageReader::open("assets/textures/bricks.jpg").unwrap().decode().unwrap();
+      let img_rgb = img.to_rgb8().as_raw().to_owned();
+      let mut texture_id = 0;
+      gl::GenTextures(1, &mut texture_id);
+      gl::ActiveTexture(gl::TEXTURE0);
+      gl::BindTexture(gl::TEXTURE_2D, texture_id);
+      debug_assert_ne!(texture_id, 0);
+      gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+      gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+      gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as i32, img.width() as i32, img.height() as i32, 0, gl::RGB, gl::UNSIGNED_BYTE, img_rgb.as_ptr() as *const _);
+      gl::GenerateMipmap(gl::TEXTURE_2D);
+      texture_id
+    };
+
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
+
+    let inception = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs_f64();
+    let mut tick = inception;
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    let mut camera_position = Vec3::new(0.0, 0.0, -3.0);
+    let camera_speed = 0.05;
+    let mut camera_front = Vec3::new(0.0, 0.0, -1.0);
+    let camera_up = Vec3::new(0.0, 1.0, 0.0);
+    let mut camera_rotation = Vec3::new(0.0, 0.0, -90.0);
+    let mut keymap: HashSet<Scancode> = HashSet::new();
+    'main: loop {
+        let next = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs_f64();
+        tick = next - inception;
+
+        for event in event_pump.poll_iter() {
+            match event {
+                sdl2::event::Event::Quit { .. } => break 'main,
+                sdl2::event::Event::KeyDown { scancode, .. } => {
+                    keymap.insert(scancode.unwrap());
+                },
+                sdl2::event::Event::KeyUp { scancode, .. } => {
+                    keymap.remove(&scancode.unwrap());
+                },
+                sdl2::event::Event::MouseMotion {xrel, yrel, ..} => {
+                    camera_rotation.x += xrel as f32 * 0.5;
+                    camera_rotation.y -= yrel as f32 * 0.5;
                 }
+                _ => {}
             }
-            Event::KeyUp { scancode, .. } => {
-                if scancode.unwrap()
-                    == movement_controller
-                        .borrow()
-                        .downcast_ref::<MovementController>()
-                        .unwrap()
-                        .up
-                    || scancode.unwrap()
-                        == movement_controller
-                            .borrow()
-                            .downcast_ref::<MovementController>()
-                            .unwrap()
-                            .down
-                {
-                    velocity.borrow_mut().downcast_mut::<Velocity>().unwrap().1 = 0.0;
-                }
-            }
-            _ => {}
         }
-    });
+        if keymap.contains(&Scancode::Escape) {
+            break 'main;
+        }
+
+        let mut camera_movement_direction = Vec3::new(0.0, 0.0, 0.0);
+        if keymap.contains(&Scancode::W) {
+            camera_movement_direction += camera_front;
+        }
+        if keymap.contains(&Scancode::S) {
+            camera_movement_direction -= camera_front;
+        }
+        if keymap.contains(&Scancode::A) {
+            camera_movement_direction += camera_up.cross(camera_front).normalize();
+        }
+        if keymap.contains(&Scancode::D) {
+            camera_movement_direction -= camera_up.cross(camera_front).normalize();
+        }
+        camera_position += camera_movement_direction * camera_speed;
+        unsafe {
+            gl::ClearColor(0.1, 0.3, 0.3, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+            shader_program.use_program();
+
+            let projection = Mat4::perspective_rh(radians(45.0), 800.0/600.0, 0.1, 100.0);
+            shader_program.set_mat4("projection", &projection);
+
+            let model = Mat4::IDENTITY.clone();
+            shader_program.set_mat4("model", &model);
+
+            let mut camera_direction = Vec3::default();
+            camera_direction.x = f32::cos(radians(camera_rotation.x)) * f32::cos(radians(camera_rotation.y));
+            camera_direction.y = f32::sin(radians(camera_rotation.y));
+            camera_direction.z = f32::sin(radians(camera_rotation.x)) * f32::cos(radians(camera_rotation.y));
+            camera_front = camera_direction.normalize();
+
+            let view = Mat4::look_at_rh(camera_position, camera_position + camera_front, camera_up);
+            shader_program.set_mat4("view", &view);
+
+            shader_program.set_int("texture2", 1);
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, texture);
+            gl::BindVertexArray(vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            gl::BindVertexArray(0);
+        }
+        window.gl_swap_window();
+    }
 }
 
-fn physics(world: &mut World, delta_time: f32) {
-    let entities = world.resolve(&Query::new().with::<Position>().with::<Velocity>().build());
-    entities.iter().for_each(|entity| {
-        let position = world.get_entity_component::<Position>(*entity).unwrap();
-        let velocity = world.get_entity_component::<Velocity>(*entity).unwrap();
-        position.borrow_mut().downcast_mut::<Position>().unwrap().0 +=
-            velocity.borrow().downcast_ref::<Velocity>().unwrap().0 * delta_time;
-        position.borrow_mut().downcast_mut::<Position>().unwrap().1 +=
-            velocity.borrow().downcast_ref::<Velocity>().unwrap().1 * delta_time;
-    });
-}
-
-fn rectangle_renderer(world: &mut World, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>) {
-    let entities = world.resolve(&Query::new().with::<Rectangle>().with::<Position>().build());
-    entities.iter().for_each(|entity| {
-        let position = world.get_entity_component::<Position>(*entity).unwrap();
-        let rectangle = world.get_entity_component::<Rectangle>(*entity).unwrap();
-        canvas
-            .draw_frect(FRect::new(
-                position.borrow().downcast_ref::<Position>().unwrap().0,
-                position.borrow().downcast_ref::<Position>().unwrap().1,
-                rectangle.borrow().downcast_ref::<Rectangle>().unwrap().0,
-                rectangle.borrow().downcast_ref::<Rectangle>().unwrap().1,
-            ))
-            .unwrap();
-    });
+fn radians(degrees: f32) -> f32 {
+    degrees * PI / 180.0
 }

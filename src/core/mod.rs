@@ -1,42 +1,35 @@
 use crate::core::ecs::world::World;
 use sdl2::event::Event;
-use sdl2::pixels::Color;
 use sdl2::render::Canvas;
+use sdl2::video::Window;
 use sdl2::{EventPump, Sdl};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub mod ecs;
+pub mod render;
+pub struct Renderer {}
 
 pub struct Engine {
     running: bool,
-    // The currently loaded world, which is equivalent to a game level
     world: World,
     event_pump: EventPump,
-    canvas: Canvas<sdl2::video::Window>,
+    window: Window,
 
     systems: Vec<fn(&mut World, delta_time: f32)>,
-    renderers: Vec<fn(&mut World, &mut Canvas<sdl2::video::Window>)>,
+    renderers: Vec<fn(&mut World, &mut Canvas<Window>)>,
     input_handlers: Vec<fn(&mut World, &Event)>,
 }
 
 impl Engine {
-    pub fn new(sdl: &mut Sdl) -> Self {
+    pub fn new(sdl: &mut Sdl, window: Window) -> Self {
         Self {
             world: World::new(),
             event_pump: sdl.event_pump().unwrap(),
-            canvas: sdl
-                .video()
-                .unwrap()
-                .window("psx", 800, 800)
-                .build()
-                .unwrap()
-                .into_canvas()
-                .build()
-                .unwrap(),
             running: false,
             systems: vec![],
             renderers: vec![],
             input_handlers: vec![],
+            window,
         }
     }
 
@@ -99,12 +92,10 @@ impl Engine {
     }
 
     pub fn render(&mut self) {
-        self.canvas.set_draw_color(Color::RGB(0, 0, 0));
-        self.canvas.clear();
-        self.canvas.set_draw_color(Color::RGB(255, 255, 255));
-        self.renderers
-            .iter()
-            .for_each(|r| r(&mut self.world, &mut self.canvas));
-        self.canvas.present();
+        unsafe {
+            gl::ClearColor(0.6, 0.0, 0.8, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
+        self.window.gl_swap_window();
     }
 }
