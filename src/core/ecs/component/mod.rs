@@ -1,0 +1,149 @@
+use crate::core::radians;
+use crate::core::render::model::Mesh;
+use glam::Vec3;
+use sdl2::keyboard::Scancode;
+
+#[derive(Copy, Clone, Default)]
+pub struct Transform {
+    pub position: Vec3,
+    pub rotation: Vec3,
+    pub pivot: Vec3,
+}
+
+impl Transform {
+    pub fn forward(&self) -> Vec3 {
+        Vec3::new(
+            f32::cos(radians(self.rotation.x)) * f32::sin(radians(self.rotation.y)),
+            -f32::sin(radians(self.rotation.x)),
+            f32::cos(radians(self.rotation.x)) * f32::cos(radians(self.rotation.y)),
+        )
+        .normalize()
+    }
+
+    pub fn right(&self) -> Vec3 {
+        Vec3::new(
+            -f32::cos(self.rotation.y),
+            0.0,
+            f32::sin(self.rotation.y)
+        ).normalize()
+    }
+
+    pub fn left(&self) -> Vec3 {
+        self.right() * -1.0
+    }
+
+    pub fn up(&self) -> Vec3 {
+        Vec3::new(0.0, 1.0, 0.0)
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct KeyboardControls {
+    pub forward: Scancode,
+    pub backward: Scancode,
+    pub left: Scancode,
+    pub right: Scancode,
+}
+
+impl Default for KeyboardControls {
+    fn default() -> Self {
+        Self {
+            forward: Scancode::W,
+            backward: Scancode::S,
+            left: Scancode::A,
+            right: Scancode::D,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Material {
+    pub shader_id: u32,
+    pub texture_id: Option<u32>,
+}
+
+#[derive(Copy, Clone)]
+pub struct Model {
+    pub material: Material,
+    pub vertex_array_object: u32,
+    pub vertex_count: u32,
+}
+
+impl Model {
+    pub fn new(material: Material, mesh: &Mesh) -> Self {
+        let mut vao = 0;
+        unsafe {
+            gl::GenVertexArrays(1, &mut vao);
+            gl::BindVertexArray(vao);
+        }
+
+        let mut vbo = 0;
+        unsafe {
+            gl::GenBuffers(1, &mut vbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        }
+        let vertices = mesh.serialize();
+        unsafe {
+            gl::BufferData(
+                gl::ARRAY_BUFFER,
+                (size_of::<f32>() * vertices.len()) as isize,
+                vertices.as_slice().as_ptr().cast(),
+                gl::STATIC_DRAW,
+            );
+            gl::VertexAttribPointer(
+                0,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                (5 * size_of::<f32>()) as gl::types::GLint,
+                0 as *const _,
+            );
+            gl::EnableVertexAttribArray(0);
+            gl::VertexAttribPointer(
+                1,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                (5 * size_of::<f32>()) as gl::types::GLint,
+                (3 * size_of::<f32>()) as *const gl::types::GLvoid,
+            );
+            gl::EnableVertexAttribArray(1);
+            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+            gl::BindVertexArray(0);
+        }
+        Self {
+            material,
+            vertex_array_object: vao,
+            vertex_count: mesh.vertex_length(),
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct Lens {
+    pub fov: f32,
+    pub aspect_ratio: f32,
+    pub near: f32,
+    pub far: f32,
+}
+
+impl Default for Lens {
+    fn default() -> Self {
+        Self {
+            fov: radians(45.0),
+            aspect_ratio: 800.0 / 600.0,
+            near: 0.1,
+            far: 100.0,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct CameraTarget();
+
+#[derive(Clone)]
+pub struct PhysicsBody {
+    pub mass: f32,
+    pub force: Vec3,
+    pub velocity: Vec3,
+}

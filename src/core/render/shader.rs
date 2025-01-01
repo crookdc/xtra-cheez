@@ -1,19 +1,22 @@
+use glam::Mat4;
 use std::ffi::CString;
 use std::{fs, io};
-use glam::Mat4;
 
+#[derive(Clone)]
 pub struct Shader {
     id: u32,
 }
 
 impl Shader {
-    pub unsafe fn from_source_files(vertex_path: &str, fragment_path: &str) -> io::Result<Shader> {
-        let vertex_shader = compile_shader_from_file(gl::VERTEX_SHADER, &vertex_path)?;
-        let fragment_shader = compile_shader_from_file(gl::FRAGMENT_SHADER, &fragment_path)?;
-        let id = create_program(vertex_shader, fragment_shader)?;
-        gl::DeleteProgram(vertex_shader);
-        gl::DeleteProgram(fragment_shader);
-        Ok(Self { id })
+    pub fn from_source_files(vertex_path: &str, fragment_path: &str) -> io::Result<Shader> {
+        unsafe {
+            let vertex_shader = compile_shader_from_file(gl::VERTEX_SHADER, &vertex_path)?;
+            let fragment_shader = compile_shader_from_file(gl::FRAGMENT_SHADER, &fragment_path)?;
+            let id = create_program(vertex_shader, fragment_shader)?;
+            gl::DeleteProgram(vertex_shader);
+            gl::DeleteProgram(fragment_shader);
+            Ok(Self { id })
+        }
     }
 
     pub fn get_id(&self) -> u32 {
@@ -37,13 +40,36 @@ impl Shader {
     }
 
     pub unsafe fn set_mat4(&self, name: &str, value: &Mat4) {
-        gl::UniformMatrix4fv(self.get_uniform_location(name), 1, gl::FALSE, &value.to_cols_array()[0])
+        gl::UniformMatrix4fv(
+            self.get_uniform_location(name),
+            1,
+            gl::FALSE,
+            &value.to_cols_array()[0],
+        )
     }
 
     unsafe fn get_uniform_location(&self, name: &str) -> i32 {
         let c_str = CString::new(name).unwrap();
         gl::GetUniformLocation(self.id, c_str.as_ptr())
     }
+}
+
+pub unsafe fn set_mat4(id: u32, name: &str, value: &Mat4) {
+    gl::UniformMatrix4fv(
+        get_uniform_location(id, name),
+        1,
+        gl::FALSE,
+        &value.to_cols_array()[0],
+    )
+}
+
+pub unsafe fn set_int(id: u32, name: &str, value: i32) {
+    gl::Uniform1i(get_uniform_location(id, name), value)
+}
+
+pub unsafe fn get_uniform_location(id: u32, name: &str) -> i32 {
+    let c_str = CString::new(name).unwrap();
+    gl::GetUniformLocation(id, c_str.as_ptr())
 }
 
 unsafe fn create_program(vertex_shader_id: u32, fragment_shader_id: u32) -> io::Result<u32> {

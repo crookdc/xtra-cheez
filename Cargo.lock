@@ -558,6 +558,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
+name = "pizza_delivery"
+version = "0.1.0"
+dependencies = [
+ "gl",
+ "glam",
+ "image",
+ "sdl2",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -611,16 +621,6 @@ checksum = "a65f2e60fbf1063868558d69c6beacf412dc755f9fc020f514b7955fc914fe30"
 dependencies = [
  "quote",
  "syn",
-]
-
-[[package]]
-name = "psx"
-version = "0.1.0"
-dependencies = [
- "gl",
- "glam",
- "image",
- "sdl2",
 ]
 
 [[package]]
