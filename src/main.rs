@@ -141,7 +141,7 @@ mod player {
             id,
             Transform {
                 position: Vec3::default(),
-                pivot: Vec3::new(0.0, 0.0, -1.5),
+                pivot: Vec3::new(0.0, 0.0, -2.5),
                 rotation: Vec3::new(0.0, 0.0, 0.0),
             },
         )
@@ -180,15 +180,40 @@ mod player {
         )[0];
         let controls = ecs.clone_component::<KeyboardControls>(id).unwrap();
         let transform = ecs.clone_component::<Transform>(id).unwrap();
-        let direction = ecs
+
+        let drive_dir = ecs
             .get_resource::<Keymap>()
             .unwrap()
             .axis(controls.forward, controls.backward);
         ecs.update_component::<PhysicsBody>(id, &mut |mut body| {
-            body.force += transform.forward() * 30.0 * direction * delta_time;
+            if drive_dir == 0.0 {
+                body.force -= body.velocity;
+            } else {
+                body.force += transform.forward() * 30.0 * drive_dir * delta_time;
+            }
             body
         })
         .unwrap();
+        let velocity = ecs
+            .get_component::<PhysicsBody>(id)
+            .unwrap()
+            .borrow()
+            .downcast_ref::<PhysicsBody>()
+            .unwrap()
+            .velocity
+            .clone();
+        let steer_dir = ecs
+            .get_resource::<Keymap>()
+            .unwrap()
+            .axis(controls.left, controls.right);
+        ecs.update_component::<Transform>(id, &mut |mut transform| {
+            if velocity.length().abs() < 0.025 {
+                return transform;
+            }
+            transform.rotation.y += 10.0 / velocity.length() * delta_time * steer_dir;
+            transform
+        })
+        .unwrap()
     }
 }
 

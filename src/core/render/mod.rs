@@ -49,20 +49,9 @@ pub fn draw(ecs: &mut ECS) {
     );
     let models = ecs.query(&Query::new().with::<Transform>().with::<Model>().build());
     for id in models {
-        let model = ecs
-            .get_component::<Model>(id)
-            .unwrap()
-            .borrow()
-            .downcast_ref::<Model>()
-            .unwrap()
-            .clone();
+        let model = ecs.clone_component::<Model>(id).unwrap();
         let model_matrix = model_matrix(
-            &ecs.get_component::<Transform>(id)
-                .unwrap()
-                .borrow()
-                .downcast_ref::<Transform>()
-                .unwrap()
-                .clone(),
+            &ecs.clone_component::<Transform>(id).unwrap(),
         );
         unsafe {
             gl::UseProgram(model.material.shader_id);

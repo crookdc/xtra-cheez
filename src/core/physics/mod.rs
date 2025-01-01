@@ -11,7 +11,7 @@ pub fn system(ecs: &mut ECS, delta_time: f32) {
     for id in bodies {
         ecs.update_component::<PhysicsBody>(id, &mut |mut body| {
             body.velocity = (body.force / body.mass) * delta_time;
-            body.force -= body.velocity * 3.0;
+            body.force -= body.velocity * 4.0;
             body
         })
         .unwrap();
