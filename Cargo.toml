@@ -1,5 +1,5 @@
 [package]
-name = "pizza_delivery"
+name = "xtra_cheez"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,3 +8,4 @@ sdl2 = "0.37.0"
 gl = "0.14.0"
 image = "0.25.5"
 glam = "0.29.2"
+rand = "0.8.5"

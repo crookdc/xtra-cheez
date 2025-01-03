@@ -1,17 +1,18 @@
 use glam::Vec3;
-use pizza_delivery::core::ecs::component::{
+use xtra_cheez::core::ecs::component::{
     CameraTarget, KeyboardControls, Lens, Material, Model, PhysicsBody, Transform,
 };
-use pizza_delivery::core::ecs::{ECSBuilder, ECS};
-use pizza_delivery::core::render::model::parse_obj_file;
-use pizza_delivery::core::render::shader::Shader;
-use pizza_delivery::core::render::Color;
-use pizza_delivery::core::{physics, render, Keymap, Mouse};
+use xtra_cheez::core::ecs::{ECSBuilder, ECS};
+use xtra_cheez::core::render::model::parse_obj_file;
+use xtra_cheez::core::render::shader::Shader;
+use xtra_cheez::core::render::Color;
+use xtra_cheez::core::{physics, render, Keymap, Mouse};
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::video::GLProfile;
 use std::collections::HashSet;
 use std::time::SystemTime;
+use xtra_cheez::gameplay;
 
 fn main() {
     let sdl_context = sdl2::init().unwrap();
@@ -22,7 +23,7 @@ fn main() {
     gl_attr.set_context_version(3, 3);
 
     let window = video_subsystem
-        .window("Pizza Delivery", 800, 800)
+        .window("XTRA CHEEZ", 800, 800)
         .opengl()
         .build()
         .unwrap();
@@ -50,7 +51,7 @@ fn main() {
         .build();
     camera::build(&mut ecs);
     player::build(&mut ecs);
-    build_tiles(&mut ecs);
+    gameplay::generate_cityscape(&mut ecs, 25, 25);
     let mut events = sdl_context.event_pump().unwrap();
     let mut tick = SystemTime::now();
     'game: loop {
@@ -95,9 +96,9 @@ fn quit(event: &Event) -> bool {
 
 mod camera {
     use glam::Vec3;
-    use pizza_delivery::core::ecs::component::{Lens, Transform};
-    use pizza_delivery::core::ecs::{Query, ECS};
-    use pizza_delivery::core::Mouse;
+    use xtra_cheez::core::ecs::component::{Lens, Transform};
+    use xtra_cheez::core::ecs::{Query, ECS};
+    use xtra_cheez::core::Mouse;
 
     pub fn build(ecs: &mut ECS) {
         let id = ecs.create_entity();
@@ -105,6 +106,7 @@ mod camera {
             id,
             Transform {
                 position: Vec3::default(),
+                scale: Vec3::new(1.0, 1.0, 1.0),
                 pivot: Vec3::default(),
                 rotation: Vec3::new(-90.0, 0.0, 0.0),
             },
@@ -126,14 +128,14 @@ mod camera {
 
 mod player {
     use glam::Vec3;
-    use pizza_delivery::core::ecs::component::{
+    use xtra_cheez::core::ecs::component::{
         CameraTarget, KeyboardControls, Material, Model, PhysicsBody, Transform,
     };
-    use pizza_delivery::core::ecs::{Query, ECS};
-    use pizza_delivery::core::render::model;
-    use pizza_delivery::core::render::model::parse_obj_file;
-    use pizza_delivery::core::render::shader::Shader;
-    use pizza_delivery::core::Keymap;
+    use xtra_cheez::core::ecs::{Query, ECS};
+    use xtra_cheez::core::render::model;
+    use xtra_cheez::core::render::model::parse_obj_file;
+    use xtra_cheez::core::render::shader::Shader;
+    use xtra_cheez::core::Keymap;
 
     pub fn build(ecs: &mut ECS) {
         let id = ecs.create_entity();
@@ -141,6 +143,7 @@ mod player {
             id,
             Transform {
                 position: Vec3::default(),
+                scale: Vec3::new(1.0, 1.0, 1.0),
                 pivot: Vec3::new(0.0, 0.0, -2.5),
                 rotation: Vec3::new(0.0, 0.0, 0.0),
             },
@@ -189,7 +192,7 @@ mod player {
             if drive_dir == 0.0 {
                 body.force -= body.velocity;
             } else {
-                body.force += transform.forward() * 30.0 * drive_dir * delta_time;
+                body.force += transform.forward() * 120.0 * drive_dir * delta_time;
             }
             body
         })
@@ -210,7 +213,7 @@ mod player {
             if velocity.length().abs() < 0.025 {
                 return transform;
             }
-            transform.rotation.y += 10.0 / velocity.length() * delta_time * steer_dir;
+            transform.rotation.y += 5.0 / velocity.length() * delta_time * steer_dir;
             transform
         })
         .unwrap()
@@ -232,6 +235,7 @@ fn build_tiles(ecs: &mut ECS) {
                 id,
                 Transform {
                     position: Vec3::new((j * 3) as f32, 0.0, (i * 3) as f32),
+                    scale: Vec3::new(1.0, 1.0, 1.0),
                     pivot: Vec3::default(),
                     rotation: Vec3::default(),
                 },

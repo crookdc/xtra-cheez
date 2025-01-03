@@ -93,6 +93,7 @@ pub fn free_view_matrix(transform: &Transform) -> Mat4 {
 
 pub fn model_matrix(transform: &Transform) -> Mat4 {
     Mat4::from_translation(transform.position)
+        * Mat4::from_scale(transform.scale)
         * Mat4::from_translation(transform.pivot)
         * Mat4::from_rotation_x(radians(transform.rotation.x))
         * Mat4::from_rotation_y(radians(transform.rotation.y))

@@ -7,6 +7,7 @@ use sdl2::keyboard::Scancode;
 pub struct Transform {
     pub position: Vec3,
     pub rotation: Vec3,
+    pub scale: Vec3,
     pub pivot: Vec3,
 }
 
@@ -17,7 +18,7 @@ impl Transform {
             -f32::sin(radians(self.rotation.x)),
             f32::cos(radians(self.rotation.x)) * f32::cos(radians(self.rotation.y)),
         )
-        .normalize()
+            .normalize()
     }
 
     pub fn right(&self) -> Vec3 {
@@ -133,7 +134,7 @@ impl Default for Lens {
             fov: radians(45.0),
             aspect_ratio: 800.0 / 600.0,
             near: 0.1,
-            far: 100.0,
+            far: 1000.0,
         }
     }
 }
