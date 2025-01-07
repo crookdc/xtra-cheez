@@ -1,7 +1,8 @@
 use crate::core::radians;
-use crate::core::render::model::Mesh;
+use crate::core::render::model::{Material, Mesh};
 use glam::Vec3;
 use sdl2::keyboard::Scancode;
+use std::collections::HashMap;
 
 #[derive(Copy, Clone, Default)]
 pub struct Transform {
@@ -18,15 +19,11 @@ impl Transform {
             -f32::sin(radians(self.rotation.x)),
             f32::cos(radians(self.rotation.x)) * f32::cos(radians(self.rotation.y)),
         )
-            .normalize()
+        .normalize()
     }
 
     pub fn right(&self) -> Vec3 {
-        Vec3::new(
-            -f32::cos(self.rotation.y),
-            0.0,
-            f32::sin(self.rotation.y)
-        ).normalize()
+        Vec3::new(-f32::cos(self.rotation.y), 0.0, f32::sin(self.rotation.y)).normalize()
     }
 
     pub fn left(&self) -> Vec3 {
@@ -57,21 +54,14 @@ impl Default for KeyboardControls {
     }
 }
 
-#[derive(Copy, Clone)]
-pub struct Material {
-    pub shader_id: u32,
-    pub texture_id: Option<u32>,
-}
-
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Model {
-    pub material: Material,
-    pub vertex_array_object: u32,
-    pub vertex_count: u32,
+    pub materials: Vec<Material>,
+    pub vao: u32,
 }
 
 impl Model {
-    pub fn new(material: Material, mesh: &Mesh) -> Self {
+    pub fn new(mesh: Mesh) -> Self {
         let mut vao = 0;
         unsafe {
             gl::GenVertexArrays(1, &mut vao);
@@ -113,9 +103,8 @@ impl Model {
             gl::BindVertexArray(0);
         }
         Self {
-            material,
-            vertex_array_object: vao,
-            vertex_count: mesh.vertex_length(),
+            vao,
+            materials: mesh.materials,
         }
     }
 }

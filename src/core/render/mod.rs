@@ -1,6 +1,7 @@
 use crate::core::ecs::component::{CameraTarget, Lens, Model, Transform};
 use crate::core::ecs::{Query, ECS};
-use crate::core::radians;
+use crate::core::render::shader::Shader;
+use crate::core::{radians, Mouse};
 use glam::{Mat4, Vec3};
 use sdl2::libc::pipe;
 use std::f32::consts::PI;
@@ -18,6 +19,7 @@ pub fn clear(color: &Color) {
 }
 
 pub fn draw(ecs: &mut ECS) {
+    let shader_id = ecs.get_resource::<Shader>().unwrap().get_id();
     let camera = *ecs
         .query(&Query::new().with::<Lens>().with::<Transform>().build())
         .first()
@@ -50,23 +52,20 @@ pub fn draw(ecs: &mut ECS) {
     let models = ecs.query(&Query::new().with::<Transform>().with::<Model>().build());
     for id in models {
         let model = ecs.clone_component::<Model>(id).unwrap();
-        let model_matrix = model_matrix(
-            &ecs.clone_component::<Transform>(id).unwrap(),
-        );
+        let model_matrix = model_matrix(&ecs.clone_component::<Transform>(id).unwrap());
         unsafe {
-            gl::UseProgram(model.material.shader_id);
-            shader::set_mat4(model.material.shader_id, "projection", &projection_matrix);
-            shader::set_mat4(model.material.shader_id, "view", &view_matrix);
-            shader::set_mat4(model.material.shader_id, "model", &model_matrix);
-            if let Some(texture) = model.material.texture_id {
-                gl::ActiveTexture(gl::TEXTURE0);
-                gl::BindTexture(gl::TEXTURE_2D, texture);
-                shader::set_int(model.material.shader_id, "u_texture", texture as i32);
+            gl::UseProgram(shader_id);
+            shader::set_mat4(shader_id, "projection", &projection_matrix);
+            shader::set_mat4(shader_id, "view", &view_matrix);
+            shader::set_mat4(shader_id, "model", &model_matrix);
+            gl::BindVertexArray(model.vao);
+            for material in model.materials {
+                let texture_id = material.texture_id.or(Some(0)).unwrap();
+                gl::BindTexture(gl::TEXTURE_2D, texture_id);
+                gl::DrawArrays(gl::TRIANGLES, material.first_index, material.count);
             }
-            gl::BindVertexArray(model.vertex_array_object);
-            gl::DrawArrays(gl::TRIANGLES, 0, model.vertex_count as i32);
-            gl::BindVertexArray(0);
             gl::BindTexture(gl::TEXTURE_2D, 0);
+            gl::BindVertexArray(0);
         }
     }
 }
@@ -80,7 +79,11 @@ pub fn targeted_view_matrix(transform: &Transform, target: &Transform) -> Mat4 {
     camera_position.y = 4.0;
     camera_position.x += f32::cos(radians(transform.rotation.x)) * 12.0;
     camera_position.z += f32::sin(radians(transform.rotation.x)) * 12.0;
-    Mat4::look_at_rh(camera_position, target.position + target.pivot, transform.up())
+    Mat4::look_at_rh(
+        camera_position,
+        target.position + target.pivot,
+        transform.up(),
+    )
 }
 
 pub fn free_view_matrix(transform: &Transform) -> Mat4 {
@@ -99,4 +102,29 @@ pub fn model_matrix(transform: &Transform) -> Mat4 {
         * Mat4::from_rotation_y(radians(transform.rotation.y))
         * Mat4::from_rotation_z(radians(transform.rotation.z))
         * Mat4::from_translation(-transform.pivot)
+}
+
+pub fn build_camera(ecs: &mut ECS) {
+    let id = ecs.create_entity();
+    ecs.attach_component(
+        id,
+        Transform {
+            position: Vec3::default(),
+            scale: Vec3::new(1.0, 1.0, 1.0),
+            pivot: Vec3::default(),
+            rotation: Vec3::new(-90.0, 0.0, 0.0),
+        },
+    )
+        .unwrap();
+    ecs.attach_component(id, Lens::default()).unwrap();
+}
+
+pub fn camera_movement_system(ecs: &mut ECS, delta_time: f32) {
+    let camera = ecs.query(&Query::new().with::<Transform>().with::<Lens>().build())[0];
+    let x_rel = ecs.get_resource::<Mouse>().unwrap().0;
+    ecs.update_component::<Transform>(camera, &mut |mut transform| {
+        transform.rotation.x += 4.0 * x_rel as f32 * delta_time;
+        transform
+    })
+        .unwrap();
 }

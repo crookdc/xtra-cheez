@@ -1,6 +1,8 @@
 # Blender 4.2.3 LTS
 # www.blender.org
+mtllib materials/player.mtl
 o Car3
+usemtl Player
 v -1.110216 0.747692 2.083188
 v -0.844558 0.747692 2.083188
 v -0.844558 0.886165 1.756965

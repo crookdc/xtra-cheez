@@ -1,17 +1,16 @@
-use glam::Vec3;
-use xtra_cheez::core::ecs::component::{
-    CameraTarget, KeyboardControls, Lens, Material, Model, PhysicsBody, Transform,
-};
-use xtra_cheez::core::ecs::{ECSBuilder, ECS};
-use xtra_cheez::core::render::model::parse_obj_file;
-use xtra_cheez::core::render::shader::Shader;
-use xtra_cheez::core::render::Color;
-use xtra_cheez::core::{physics, render, Keymap, Mouse};
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::video::GLProfile;
 use std::collections::HashSet;
 use std::time::SystemTime;
+use xtra_cheez::core::ecs::component::{
+    CameraTarget, KeyboardControls, Lens, Model, PhysicsBody, Transform,
+};
+use xtra_cheez::core::ecs::ECSBuilder;
+use xtra_cheez::core::render::model::MeshLoader;
+use xtra_cheez::core::render::shader::Shader;
+use xtra_cheez::core::render::Color;
+use xtra_cheez::core::{physics, render, Keymap, Mouse};
 use xtra_cheez::gameplay;
 
 fn main() {
@@ -48,10 +47,15 @@ fn main() {
             Shader::from_source_files("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl")
                 .unwrap(),
         )
+        .with_resource(MeshLoader::new())
         .build();
-    camera::build(&mut ecs);
-    player::build(&mut ecs);
-    gameplay::generate_cityscape(&mut ecs, 25, 25);
+
+    render::build_camera(&mut ecs);
+    gameplay::build_player(&mut ecs);
+
+    let maze = gameplay::generate_cityscape(100, 100);
+    gameplay::build_entities(&mut ecs, &maze);
+
     let mut events = sdl_context.event_pump().unwrap();
     let mut tick = SystemTime::now();
     'game: loop {
@@ -73,8 +77,8 @@ fn main() {
             ecs.get_resource_mut::<Mouse>().unwrap().consume(&event);
         }
 
-        camera::movement_system(&mut ecs, delta_time);
-        player::movement_system(&mut ecs, delta_time);
+        render::camera_movement_system(&mut ecs, delta_time);
+        gameplay::player_movement_system(&mut ecs, delta_time);
         physics::system(&mut ecs, delta_time);
 
         render::clear(&Color(0.0, 0.05, 0.05, 1.0));
@@ -91,157 +95,5 @@ fn quit(event: &Event) -> bool {
             ..
         } => true,
         _ => false,
-    }
-}
-
-mod camera {
-    use glam::Vec3;
-    use xtra_cheez::core::ecs::component::{Lens, Transform};
-    use xtra_cheez::core::ecs::{Query, ECS};
-    use xtra_cheez::core::Mouse;
-
-    pub fn build(ecs: &mut ECS) {
-        let id = ecs.create_entity();
-        ecs.attach_component(
-            id,
-            Transform {
-                position: Vec3::default(),
-                scale: Vec3::new(1.0, 1.0, 1.0),
-                pivot: Vec3::default(),
-                rotation: Vec3::new(-90.0, 0.0, 0.0),
-            },
-        )
-        .unwrap();
-        ecs.attach_component(id, Lens::default()).unwrap();
-    }
-
-    pub fn movement_system(ecs: &mut ECS, delta_time: f32) {
-        let camera = ecs.query(&Query::new().with::<Transform>().with::<Lens>().build())[0];
-        let x_rel = ecs.get_resource::<Mouse>().unwrap().0;
-        ecs.update_component::<Transform>(camera, &mut |mut transform| {
-            transform.rotation.x += 4.0 * x_rel as f32 * delta_time;
-            transform
-        })
-        .unwrap();
-    }
-}
-
-mod player {
-    use glam::Vec3;
-    use xtra_cheez::core::ecs::component::{
-        CameraTarget, KeyboardControls, Material, Model, PhysicsBody, Transform,
-    };
-    use xtra_cheez::core::ecs::{Query, ECS};
-    use xtra_cheez::core::render::model;
-    use xtra_cheez::core::render::model::parse_obj_file;
-    use xtra_cheez::core::render::shader::Shader;
-    use xtra_cheez::core::Keymap;
-
-    pub fn build(ecs: &mut ECS) {
-        let id = ecs.create_entity();
-        ecs.attach_component(
-            id,
-            Transform {
-                position: Vec3::default(),
-                scale: Vec3::new(1.0, 1.0, 1.0),
-                pivot: Vec3::new(0.0, 0.0, -2.5),
-                rotation: Vec3::new(0.0, 0.0, 0.0),
-            },
-        )
-        .unwrap();
-        ecs.attach_component(
-            id,
-            Model::new(
-                Material {
-                    shader_id: ecs.get_resource::<Shader>().unwrap().get_id(),
-                    texture_id: Some(model::load_texture("assets/textures/player.png")),
-                },
-                &parse_obj_file("assets/models/player.obj").unwrap(),
-            ),
-        )
-        .unwrap();
-        ecs.attach_component(id, CameraTarget()).unwrap();
-        ecs.attach_component(id, KeyboardControls::default())
-            .unwrap();
-        ecs.attach_component(
-            id,
-            PhysicsBody {
-                force: Vec3::default(),
-                velocity: Vec3::default(),
-                mass: 1.0,
-            },
-        )
-        .unwrap()
-    }
-
-    pub fn movement_system(ecs: &mut ECS, delta_time: f32) {
-        let id = ecs.query(
-            &Query::new()
-                .with::<KeyboardControls>()
-                .with::<Transform>()
-                .with::<PhysicsBody>(),
-        )[0];
-        let controls = ecs.clone_component::<KeyboardControls>(id).unwrap();
-        let transform = ecs.clone_component::<Transform>(id).unwrap();
-
-        let drive_dir = ecs
-            .get_resource::<Keymap>()
-            .unwrap()
-            .axis(controls.forward, controls.backward);
-        ecs.update_component::<PhysicsBody>(id, &mut |mut body| {
-            if drive_dir == 0.0 {
-                body.force -= body.velocity;
-            } else {
-                body.force += transform.forward() * 120.0 * drive_dir * delta_time;
-            }
-            body
-        })
-        .unwrap();
-        let velocity = ecs
-            .get_component::<PhysicsBody>(id)
-            .unwrap()
-            .borrow()
-            .downcast_ref::<PhysicsBody>()
-            .unwrap()
-            .velocity
-            .clone();
-        let steer_dir = ecs
-            .get_resource::<Keymap>()
-            .unwrap()
-            .axis(controls.left, controls.right);
-        ecs.update_component::<Transform>(id, &mut |mut transform| {
-            if velocity.length().abs() < 0.025 {
-                return transform;
-            }
-            transform.rotation.y += 5.0 / velocity.length() * delta_time * steer_dir;
-            transform
-        })
-        .unwrap()
-    }
-}
-
-fn build_tiles(ecs: &mut ECS) {
-    let model = Model::new(
-        Material {
-            shader_id: ecs.get_resource::<Shader>().unwrap().get_id(),
-            texture_id: None,
-        },
-        &parse_obj_file("assets/models/tile.obj").unwrap(),
-    );
-    for i in 0..40 {
-        for j in 0..40 {
-            let id = ecs.create_entity();
-            ecs.attach_component(
-                id,
-                Transform {
-                    position: Vec3::new((j * 3) as f32, 0.0, (i * 3) as f32),
-                    scale: Vec3::new(1.0, 1.0, 1.0),
-                    pivot: Vec3::default(),
-                    rotation: Vec3::default(),
-                },
-            )
-            .unwrap();
-            ecs.attach_component(id, model).unwrap()
-        }
     }
 }
