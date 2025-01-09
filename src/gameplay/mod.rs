@@ -1,5 +1,5 @@
 use crate::core::ecs::component::{CameraTarget, KeyboardControls, Model, PhysicsBody, Transform};
-use crate::core::ecs::{EntityID, Query, ECS};
+use crate::core::ecs::{Query, ECS};
 use crate::core::render::model::MeshLoader;
 use crate::core::Keymap;
 use glam::Vec3;
@@ -15,7 +15,6 @@ const OBSTACLE_MODEL_FILES: [&str; 3] = [
 #[derive(Copy, Clone, Eq, Hash, PartialEq)]
 enum EntityType {
     Obstacle,   // Any object causing a road block such as a structure or road maintenance
-    SpawnPoint, // Valid spawn points for player or objective, all spawn points can reach each other
 }
 
 pub struct Maze(Vec<Vec<HashSet<EntityType>>>);
@@ -153,7 +152,6 @@ fn spawn_obstacle_on_tile(ecs: &mut ECS, tile: (usize, usize)) {
     .unwrap();
 }
 
-
 pub fn build_player(ecs: &mut ECS) {
     let id = ecs.create_entity();
     ecs.attach_component(
@@ -165,7 +163,7 @@ pub fn build_player(ecs: &mut ECS) {
             rotation: Vec3::new(0.0, 0.0, 0.0),
         },
     )
-        .unwrap();
+    .unwrap();
     let mesh = ecs
         .get_resource_mut::<MeshLoader>()
         .unwrap()
@@ -183,7 +181,7 @@ pub fn build_player(ecs: &mut ECS) {
             mass: 1.0,
         },
     )
-        .unwrap()
+    .unwrap()
 }
 
 pub fn player_movement_system(ecs: &mut ECS, delta_time: f32) {
@@ -208,7 +206,7 @@ pub fn player_movement_system(ecs: &mut ECS, delta_time: f32) {
         }
         body
     })
-        .unwrap();
+    .unwrap();
     let velocity = ecs
         .get_component::<PhysicsBody>(id)
         .unwrap()
@@ -228,5 +226,5 @@ pub fn player_movement_system(ecs: &mut ECS, delta_time: f32) {
         transform.rotation.y += 30.0 / velocity.length() * delta_time * steer_dir;
         transform
     })
-        .unwrap()
+    .unwrap()
 }

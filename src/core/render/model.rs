@@ -15,7 +15,7 @@ impl MeshLoader {
     pub fn load_obj_file(&mut self, file_path: &str) -> Result<Mesh, io::Error> {
         let key = String::from(file_path);
         if self.0.contains_key(&key) {
-            return Ok(self.0.get(&key).unwrap().clone())
+            return Ok(self.0.get(&key).unwrap().clone());
         }
         let mesh = parse_obj_file(file_path)?;
         self.0.insert(key, mesh.clone());
@@ -150,7 +150,7 @@ pub fn parse_obj_file(file_path: &str) -> Result<Mesh, io::Error> {
 
 fn parse_mtl_file(file_path: &str) -> Result<HashMap<String, Option<u32>>, io::Error> {
     let file = File::open(file_path)?;
-    let mut reader = BufReader::new(file);
+    let reader = BufReader::new(file);
 
     let mut matlib = HashMap::new();
     let mut current: Option<String> = None;

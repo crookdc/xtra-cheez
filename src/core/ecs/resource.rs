@@ -22,12 +22,6 @@ impl ResourceRegistry {
             .get_mut(&TypeId::of::<T>())
             .map(|boxed| boxed.downcast_mut::<T>().unwrap())
     }
-
-    pub fn delete<T: Any>(&mut self) -> Option<Box<T>> {
-        self.store
-            .remove(&TypeId::of::<T>())
-            .map(|boxed| boxed.downcast::<T>().unwrap())
-    }
 }
 
 #[cfg(test)]

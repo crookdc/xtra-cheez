@@ -6,7 +6,6 @@ use crate::core::ecs::entity::{EntityIterator, EntityRegistry};
 use crate::core::ecs::resource::ResourceRegistry;
 use std::any::{Any, TypeId};
 use std::cell::RefCell;
-use std::ops::DerefMut;
 use std::rc::Rc;
 
 pub type EntityID = usize;
@@ -113,7 +112,7 @@ impl ECS {
         entity: EntityID,
         func: &'a mut dyn FnMut(T) -> T,
     ) -> Result<(), EcsError> {
-        let mut cloned = self.clone_component::<T>(entity);
+        let cloned = self.clone_component::<T>(entity);
         if let Some(clone) = cloned {
             let updated = func(clone);
             self.entity_registry.set_entity_component(entity, updated)?

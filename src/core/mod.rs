@@ -3,8 +3,8 @@ use sdl2::keyboard::Scancode;
 use std::collections::HashSet;
 
 pub mod ecs;
-pub mod render;
 pub mod physics;
+pub mod render;
 
 pub struct Keymap(pub HashSet<Scancode>);
 

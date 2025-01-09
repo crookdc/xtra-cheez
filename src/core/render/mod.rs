@@ -3,8 +3,6 @@ use crate::core::ecs::{Query, ECS};
 use crate::core::render::shader::Shader;
 use crate::core::{radians, Mouse};
 use glam::{Mat4, Vec3};
-use sdl2::libc::pipe;
-use std::f32::consts::PI;
 
 pub mod model;
 pub mod shader;
@@ -115,7 +113,7 @@ pub fn build_camera(ecs: &mut ECS) {
             rotation: Vec3::new(-90.0, 0.0, 0.0),
         },
     )
-        .unwrap();
+    .unwrap();
     ecs.attach_component(id, Lens::default()).unwrap();
 }
 
@@ -126,5 +124,5 @@ pub fn camera_movement_system(ecs: &mut ECS, delta_time: f32) {
         transform.rotation.x += 4.0 * x_rel as f32 * delta_time;
         transform
     })
-        .unwrap();
+    .unwrap();
 }

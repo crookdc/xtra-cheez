@@ -2,7 +2,6 @@ use crate::core::radians;
 use crate::core::render::model::{Material, Mesh};
 use glam::Vec3;
 use sdl2::keyboard::Scancode;
-use std::collections::HashMap;
 
 #[derive(Copy, Clone, Default)]
 pub struct Transform {
