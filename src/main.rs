@@ -53,7 +53,7 @@ fn main() {
     render::build_camera(&mut ecs);
     gameplay::build_player(&mut ecs);
 
-    let maze = gameplay::generate_cityscape(100, 100);
+    let maze = gameplay::generate_cityscape(10, 10);
     gameplay::build_entities(&mut ecs, &maze);
 
     let mut events = sdl_context.event_pump().unwrap();
