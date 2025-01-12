@@ -1,6 +1,7 @@
 use crate::core::ecs::component::Transform;
 use crate::core::ecs::{Query, ECS};
-use glam::Vec3;
+use crate::core::radians;
+use glam::{Mat4, Vec2, Vec3};
 
 pub fn collision_system(ecs: &mut ECS, delta_time: f32) {
     let dynamic = ecs.query(
@@ -21,38 +22,59 @@ pub fn collision_system(ecs: &mut ECS, delta_time: f32) {
     // this program that I will happily revisit once I have my PoC completed.
     for id in dynamic {
         let mut transform = ecs.clone_component::<Transform>(id).unwrap();
-        transform.position.y = 0.0;
         let mut body = ecs.clone_component::<DynamicPhysicsBody>(id).unwrap();
+        let dynamic_bounds = get_bounds(&transform, body.base.width, body.base.depth);
+
         for other in statics.iter() {
             let other = other.clone();
-            let mut other_transform = ecs.clone_component::<Transform>(other).unwrap();
-            other_transform.position.y = 0.0;
             let other_body = ecs.clone_component::<PhysicsBody>(other).unwrap();
-
-            let distance = transform.distance(other_transform);
-            if distance > body.base.radius + other_body.radius {
-                continue;
+            let static_bounds = get_bounds(
+                &ecs.clone_component::<Transform>(other).unwrap(),
+                other_body.width,
+                other_body.depth,
+            );
+            // Figure out if the two are overlapping. Since we do not deal with the Y-axis in this
+            // project, the collision detection will work on a 2D plane. In a 3D world this will
+            // effectively mean that all objects have unbounded height
+            if is_intersecting(dynamic_bounds, static_bounds) {
+                let mut impulse = -body.force - (body.velocity * other_body.mass);
+                // Adds some extra impulse to the inverted forward vector, otherwise the bodies gets
+                // stuck to each other after colliding.
+                impulse += transform.forward() * -2.0;
+                ecs.get_component::<DynamicPhysicsBody>(id)
+                    .unwrap()
+                    .borrow_mut()
+                    .downcast_mut::<DynamicPhysicsBody>()
+                    .unwrap()
+                    .force += impulse;
+                break;
             }
-            let mut impulse = -body.force - (body.velocity * other_body.mass);
-            // Adds some extra impulse to the inverted forward vector, otherwise the bodies gets
-            // stuck to each other after colliding.
-            impulse += transform.forward() * -5.0;
-            ecs.get_component::<DynamicPhysicsBody>(id)
-                .unwrap()
-                .borrow_mut()
-                .downcast_mut::<DynamicPhysicsBody>()
-                .unwrap()
-                .force += impulse;
-            println!("{:?}", impulse);
-            break;
         }
     }
+}
+
+fn is_intersecting(a: (Vec2, Vec2), b: (Vec2, Vec2)) -> bool {
+    a.0.x >= b.1.x && a.1.x <= b.0.x && a.0.y >= b.1.y && a.1.y <= b.0.y
+}
+
+fn get_bounds(transform: &Transform, width: f32, depth: f32) -> (Vec2, Vec2) {
+    let matrix = Mat4::from_translation(transform.position)
+        * Mat4::from_scale(transform.scale)
+        * Mat4::from_rotation_y(radians(transform.rotation.y))
+        * Mat4::from_scale(Vec3::new(width, 1.0, depth));
+    let top_right = matrix.transform_point3(Vec3::new(0.5, 0.0, 0.5));
+    let bottom_left = matrix.transform_point3(Vec3::new(-0.5, 0.0, -0.5));
+    (
+        Vec2::new(top_right.x, top_right.z),
+        Vec2::new(bottom_left.x, bottom_left.z),
+    )
 }
 
 #[derive(Clone)]
 pub struct PhysicsBody {
     pub mass: f32,
-    pub radius: f32,
+    pub width: f32,
+    pub depth: f32,
 }
 
 #[derive(Clone)]

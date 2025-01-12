@@ -3,9 +3,7 @@ use sdl2::keyboard::Scancode;
 use sdl2::video::GLProfile;
 use std::collections::HashSet;
 use std::time::SystemTime;
-use xtra_cheez::core::ecs::component::{
-    CameraTarget, KeyboardControls, Lens, Model, Transform,
-};
+use xtra_cheez::core::ecs::component::{CameraTarget, KeyboardControls, Lens, Model, Transform};
 use xtra_cheez::core::ecs::ECSBuilder;
 use xtra_cheez::core::physics::{DynamicPhysicsBody, PhysicsBody};
 use xtra_cheez::core::render::model::MeshLoader;
@@ -52,11 +50,20 @@ fn main() {
         .with_resource(MeshLoader::new())
         .build();
 
+    let unit_cube = ecs
+        .get_resource_mut::<MeshLoader>()
+        .unwrap()
+        .load_obj_file("assets/models/unit_cube.obj")
+        .unwrap();
+    ecs.register_resource(Model::new(unit_cube));
+
     render::build_camera(&mut ecs);
     gameplay::build_player(&mut ecs);
 
-    let maze = gameplay::generate_cityscape(10, 10);
-    gameplay::build_entities(&mut ecs, &maze);
+    //let maze = gameplay::generate_cityscape(10, 10);
+    //gameplay::build_entities(&mut ecs, &maze);
+    gameplay::spawn_obstacle_on_tile(&mut ecs, (0, 2));
+    gameplay::spawn_obstacle_on_tile(&mut ecs, (0, -1));
 
     let mut events = sdl_context.event_pump().unwrap();
     let mut tick = SystemTime::now();
@@ -87,6 +94,7 @@ fn main() {
 
         render::clear(&Color(0.0, 0.05, 0.05, 1.0));
         render::draw(&mut ecs);
+        render::draw_debug(&mut ecs);
         window.gl_swap_window();
     }
 }

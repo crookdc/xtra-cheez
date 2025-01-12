@@ -8,7 +8,6 @@ pub struct Transform {
     pub position: Vec3,
     pub rotation: Vec3,
     pub scale: Vec3,
-    pub pivot: Vec3,
 }
 
 impl Transform {

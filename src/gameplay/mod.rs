@@ -160,10 +160,9 @@ pub fn spawn_obstacle_on_tile(ecs: &mut ECS, tile: (i32, i32)) {
     ecs.attach_component(
         id,
         Transform {
-            scale: Vec3::new(8.0, 8.0, 8.0),
-            position: Vec3::new(16.0 * tile.0 as f32, 0.0, 16.0 * tile.1 as f32),
+            scale: Vec3::new(4.0, 4.0, 4.0),
+            position: Vec3::new(8.0 * tile.0 as f32, 0.0, 8.0 * tile.1 as f32),
             rotation: Vec3::default(),
-            pivot: Vec3::default(),
         },
     )
     .unwrap();
@@ -171,7 +170,8 @@ pub fn spawn_obstacle_on_tile(ecs: &mut ECS, tile: (i32, i32)) {
         id,
         PhysicsBody {
             mass: 80.0,
-            radius: 10.0,
+            width: 2.0,
+            depth: 2.0,
         },
     )
     .unwrap()
@@ -183,8 +183,7 @@ pub fn build_player(ecs: &mut ECS) {
         id,
         Transform {
             position: Vec3::default(),
-            scale: Vec3::new(1.0, 1.0, 1.0),
-            pivot: Vec3::new(0.0, 0.0, -2.5),
+            scale: Vec3::new(2.0, 2.0, 2.0),
             rotation: Vec3::new(0.0, 0.0, 0.0),
         },
     )
@@ -205,7 +204,8 @@ pub fn build_player(ecs: &mut ECS) {
             velocity: Vec3::default(),
             base: PhysicsBody {
                 mass: 1.0,
-                radius: 1.0,
+                width: 0.8,
+                depth: 2.0,
             },
         },
     )
@@ -251,7 +251,7 @@ pub fn move_player(ecs: &mut ECS, delta_time: f32) {
         if velocity.length().abs() < 0.025 {
             return transform;
         }
-        transform.rotation.y += 30.0 / velocity.length() * delta_time * steer_dir;
+        transform.rotation.y += 90.0 * delta_time * steer_dir;
         transform
     })
     .unwrap()
