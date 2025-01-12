@@ -117,7 +117,7 @@ pub fn build_camera(ecs: &mut ECS) {
     ecs.attach_component(id, Lens::default()).unwrap();
 }
 
-pub fn camera_movement_system(ecs: &mut ECS, delta_time: f32) {
+pub fn move_camera(ecs: &mut ECS, delta_time: f32) {
     let camera = ecs.query(&Query::new().with::<Transform>().with::<Lens>().build())[0];
     let x_rel = ecs.get_resource::<Mouse>().unwrap().0;
     ecs.update_component::<Transform>(camera, &mut |mut transform| {

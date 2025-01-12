@@ -32,6 +32,10 @@ impl Transform {
     pub fn up(&self) -> Vec3 {
         Vec3::new(0.0, 1.0, 0.0)
     }
+
+    pub fn distance(&self, other: Self) -> f32 {
+        self.position.distance(other.position)
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -129,10 +133,3 @@ impl Default for Lens {
 
 #[derive(Copy, Clone)]
 pub struct CameraTarget();
-
-#[derive(Clone)]
-pub struct PhysicsBody {
-    pub mass: f32,
-    pub force: Vec3,
-    pub velocity: Vec3,
-}

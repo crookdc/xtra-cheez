@@ -4,9 +4,10 @@ use sdl2::video::GLProfile;
 use std::collections::HashSet;
 use std::time::SystemTime;
 use xtra_cheez::core::ecs::component::{
-    CameraTarget, KeyboardControls, Lens, Model, PhysicsBody, Transform,
+    CameraTarget, KeyboardControls, Lens, Model, Transform,
 };
 use xtra_cheez::core::ecs::ECSBuilder;
+use xtra_cheez::core::physics::{DynamicPhysicsBody, PhysicsBody};
 use xtra_cheez::core::render::model::MeshLoader;
 use xtra_cheez::core::render::shader::Shader;
 use xtra_cheez::core::render::Color;
@@ -40,6 +41,7 @@ fn main() {
         .with_component::<Model>()
         .with_component::<CameraTarget>()
         .with_component::<KeyboardControls>()
+        .with_component::<DynamicPhysicsBody>()
         .with_component::<PhysicsBody>()
         .with_resource(Keymap(HashSet::new()))
         .with_resource(Mouse(0, 0))
@@ -77,9 +79,11 @@ fn main() {
             ecs.get_resource_mut::<Mouse>().unwrap().consume(&event);
         }
 
-        render::camera_movement_system(&mut ecs, delta_time);
-        gameplay::player_movement_system(&mut ecs, delta_time);
-        physics::system(&mut ecs, delta_time);
+        render::move_camera(&mut ecs, delta_time);
+        gameplay::move_player(&mut ecs, delta_time);
+
+        physics::collision_system(&mut ecs, delta_time);
+        physics::velocity_system(&mut ecs, delta_time);
 
         render::clear(&Color(0.0, 0.05, 0.05, 1.0));
         render::draw(&mut ecs);
