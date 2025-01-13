@@ -89,7 +89,7 @@ fn main() {
         render::move_camera(&mut ecs, delta_time);
         gameplay::move_player(&mut ecs, delta_time);
 
-        physics::collision_system(&mut ecs, delta_time);
+        physics::collision_system(&mut ecs);
         physics::velocity_system(&mut ecs, delta_time);
 
         render::clear(&Color(0.0, 0.05, 0.05, 1.0));

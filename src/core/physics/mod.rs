@@ -3,7 +3,9 @@ use crate::core::ecs::{Query, ECS};
 use crate::core::radians;
 use glam::{Mat4, Vec2, Vec3};
 
-pub fn collision_system(ecs: &mut ECS, delta_time: f32) {
+struct Line(Vec2, Vec2);
+
+pub fn collision_system(ecs: &mut ECS) {
     let dynamic = ecs.query(
         &Query::new()
             .with::<Transform>()
@@ -23,12 +25,12 @@ pub fn collision_system(ecs: &mut ECS, delta_time: f32) {
     for id in dynamic {
         let mut transform = ecs.clone_component::<Transform>(id).unwrap();
         let mut body = ecs.clone_component::<DynamicPhysicsBody>(id).unwrap();
-        let dynamic_bounds = get_bounds(&transform, body.base.width, body.base.depth);
+        let dynamic_bounds = get_lines_bounds(&transform, body.base.width, body.base.depth);
 
         for other in statics.iter() {
             let other = other.clone();
             let other_body = ecs.clone_component::<PhysicsBody>(other).unwrap();
-            let static_bounds = get_bounds(
+            let static_bounds = get_lines_bounds(
                 &ecs.clone_component::<Transform>(other).unwrap(),
                 other_body.width,
                 other_body.depth,
@@ -36,7 +38,7 @@ pub fn collision_system(ecs: &mut ECS, delta_time: f32) {
             // Figure out if the two are overlapping. Since we do not deal with the Y-axis in this
             // project, the collision detection will work on a 2D plane. In a 3D world this will
             // effectively mean that all objects have unbounded height
-            if is_intersecting(dynamic_bounds, static_bounds) {
+            if is_rect_intersecting(&dynamic_bounds, &static_bounds) {
                 let mut impulse = -body.force - (body.velocity * other_body.mass);
                 // Adds some extra impulse to the inverted forward vector, otherwise the bodies gets
                 // stuck to each other after colliding.
@@ -53,8 +55,32 @@ pub fn collision_system(ecs: &mut ECS, delta_time: f32) {
     }
 }
 
-fn is_intersecting(a: (Vec2, Vec2), b: (Vec2, Vec2)) -> bool {
-    a.0.x >= b.1.x && a.1.x <= b.0.x && a.0.y >= b.1.y && a.1.y <= b.0.y
+fn is_line_intersecting(a: &Line, b: &Line) -> bool {
+    if (a.0.x == a.1.x && a.0.y == a.1.y) || (b.0.x == b.1.x && b.0.y == b.1.y) {
+        return false;
+    }
+    let denominator = (b.1.y - b.0.y) * (a.1.x - a.0.x) - (b.1.x - b.0.x) * (a.1.y - a.0.y);
+    if denominator == 0.0 {
+        return false;
+    }
+    let ua = ((b.1.x - b.0.x) * (a.0.y - b.0.y) - (b.1.y - b.0.y) * (a.0.x - b.1.x)) / denominator;
+    let ub = ((a.1.x - a.0.x) * (a.0.y - b.0.y) - (a.1.y - a.0.y) * (a.0.x - b.0.x)) / denominator;
+    if ua < 0.0 || ua > 1.0 || ub < 0.0 || ub > 1.0 {
+        false
+    } else {
+        true
+    }
+}
+
+fn is_rect_intersecting(a: &[Line; 4], b: &[Line; 4]) -> bool {
+    for al in a {
+        for bl in b.iter().clone() {
+            if is_line_intersecting(&al, bl) {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn get_bounds(transform: &Transform, width: f32, depth: f32) -> (Vec2, Vec2) {
@@ -68,6 +94,27 @@ fn get_bounds(transform: &Transform, width: f32, depth: f32) -> (Vec2, Vec2) {
         Vec2::new(top_right.x, top_right.z),
         Vec2::new(bottom_left.x, bottom_left.z),
     )
+}
+
+fn get_lines_bounds(transform: &Transform, width: f32, depth: f32) -> [Line; 4] {
+    let matrix = Mat4::from_translation(transform.position)
+        * Mat4::from_scale(transform.scale)
+        * Mat4::from_rotation_y(radians(transform.rotation.y))
+        * Mat4::from_scale(Vec3::new(width, 1.0, depth));
+    let top_right = flatten(matrix.transform_point3(Vec3::new(0.5, 0.0, 0.5)));
+    let bottom_right = flatten(matrix.transform_point3(Vec3::new(0.5, 0.0, -0.5)));
+    let top_left = flatten(matrix.transform_point3(Vec3::new(-0.5, 0.0, 0.5)));
+    let bottom_left = flatten(matrix.transform_point3(Vec3::new(-0.5, 0.0, -0.5)));
+    [
+        Line(top_right, bottom_right),
+        Line(bottom_right, bottom_left),
+        Line(bottom_left, top_left),
+        Line(top_left, top_right),
+    ]
+}
+
+fn flatten(v: Vec3) -> Vec2 {
+    Vec2::new(v.x, v.z)
 }
 
 #[derive(Clone)]
