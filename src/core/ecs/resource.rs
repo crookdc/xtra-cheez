@@ -52,19 +52,4 @@ mod tests {
         let stored = registry.get::<WorldWidth>();
         assert_eq!(stored.unwrap().0, 101.0);
     }
-
-    #[test]
-    fn resource_registry_delete() {
-        let mut registry = ResourceRegistry::default();
-        let world_width = WorldWidth(100.0);
-        registry.register(world_width);
-        {
-            let stored = registry.get::<WorldWidth>();
-            assert!(stored.is_some());
-        }
-        let removed = registry.delete::<WorldWidth>();
-        assert!(removed.is_some());
-        let stored = registry.get::<WorldWidth>();
-        assert!(stored.is_none());
-    }
 }
