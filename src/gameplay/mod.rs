@@ -169,7 +169,7 @@ pub fn spawn_obstacle_on_tile(ecs: &mut ECS, tile: (i32, i32)) {
     ecs.attach_component(
         id,
         PhysicsBody {
-            mass: 80.0,
+            mass: 50.0,
             width: 2.0,
             depth: 2.0,
         },

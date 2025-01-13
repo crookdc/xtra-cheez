@@ -23,14 +23,14 @@ pub fn collision_system(ecs: &mut ECS) {
     // will only be one dynamic object on a given level (the player). This is one of those parts of
     // this program that I will happily revisit once I have my PoC completed.
     for id in dynamic {
-        let mut transform = ecs.clone_component::<Transform>(id).unwrap();
-        let mut body = ecs.clone_component::<DynamicPhysicsBody>(id).unwrap();
-        let dynamic_bounds = get_lines_bounds(&transform, body.base.width, body.base.depth);
+        let transform = ecs.clone_component::<Transform>(id).unwrap();
+        let body = ecs.clone_component::<DynamicPhysicsBody>(id).unwrap();
+        let dynamic_bounds = get_bounding_lines(&transform, body.base.width, body.base.depth);
 
         for other in statics.iter() {
             let other = other.clone();
             let other_body = ecs.clone_component::<PhysicsBody>(other).unwrap();
-            let static_bounds = get_lines_bounds(
+            let static_bounds = get_bounding_lines(
                 &ecs.clone_component::<Transform>(other).unwrap(),
                 other_body.width,
                 other_body.depth,
@@ -42,7 +42,7 @@ pub fn collision_system(ecs: &mut ECS) {
                 let mut impulse = -body.force - (body.velocity * other_body.mass);
                 // Adds some extra impulse to the inverted forward vector, otherwise the bodies gets
                 // stuck to each other after colliding.
-                impulse += transform.forward() * -2.0;
+                impulse += body.force.normalize_or_zero() * -4.0;
                 ecs.get_component::<DynamicPhysicsBody>(id)
                     .unwrap()
                     .borrow_mut()
@@ -53,6 +53,17 @@ pub fn collision_system(ecs: &mut ECS) {
             }
         }
     }
+}
+
+fn is_rect_intersecting(a: &[Line; 4], b: &[Line; 4]) -> bool {
+    for al in a {
+        for bl in b.iter().clone() {
+            if is_line_intersecting(&al, bl) {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn is_line_intersecting(a: &Line, b: &Line) -> bool {
@@ -72,39 +83,15 @@ fn is_line_intersecting(a: &Line, b: &Line) -> bool {
     }
 }
 
-fn is_rect_intersecting(a: &[Line; 4], b: &[Line; 4]) -> bool {
-    for al in a {
-        for bl in b.iter().clone() {
-            if is_line_intersecting(&al, bl) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-fn get_bounds(transform: &Transform, width: f32, depth: f32) -> (Vec2, Vec2) {
+fn get_bounding_lines(transform: &Transform, width: f32, depth: f32) -> [Line; 4] {
     let matrix = Mat4::from_translation(transform.position)
         * Mat4::from_scale(transform.scale)
         * Mat4::from_rotation_y(radians(transform.rotation.y))
         * Mat4::from_scale(Vec3::new(width, 1.0, depth));
-    let top_right = matrix.transform_point3(Vec3::new(0.5, 0.0, 0.5));
-    let bottom_left = matrix.transform_point3(Vec3::new(-0.5, 0.0, -0.5));
-    (
-        Vec2::new(top_right.x, top_right.z),
-        Vec2::new(bottom_left.x, bottom_left.z),
-    )
-}
-
-fn get_lines_bounds(transform: &Transform, width: f32, depth: f32) -> [Line; 4] {
-    let matrix = Mat4::from_translation(transform.position)
-        * Mat4::from_scale(transform.scale)
-        * Mat4::from_rotation_y(radians(transform.rotation.y))
-        * Mat4::from_scale(Vec3::new(width, 1.0, depth));
-    let top_right = flatten(matrix.transform_point3(Vec3::new(0.5, 0.0, 0.5)));
-    let bottom_right = flatten(matrix.transform_point3(Vec3::new(0.5, 0.0, -0.5)));
-    let top_left = flatten(matrix.transform_point3(Vec3::new(-0.5, 0.0, 0.5)));
-    let bottom_left = flatten(matrix.transform_point3(Vec3::new(-0.5, 0.0, -0.5)));
+    let top_right = flatten_vec3(matrix.transform_point3(Vec3::new(0.5, 0.0, 0.5)));
+    let bottom_right = flatten_vec3(matrix.transform_point3(Vec3::new(0.5, 0.0, -0.5)));
+    let top_left = flatten_vec3(matrix.transform_point3(Vec3::new(-0.5, 0.0, 0.5)));
+    let bottom_left = flatten_vec3(matrix.transform_point3(Vec3::new(-0.5, 0.0, -0.5)));
     [
         Line(top_right, bottom_right),
         Line(bottom_right, bottom_left),
@@ -113,7 +100,7 @@ fn get_lines_bounds(transform: &Transform, width: f32, depth: f32) -> [Line; 4] 
     ]
 }
 
-fn flatten(v: Vec3) -> Vec2 {
+fn flatten_vec3(v: Vec3) -> Vec2 {
     Vec2::new(v.x, v.z)
 }
 

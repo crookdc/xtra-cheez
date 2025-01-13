@@ -59,11 +59,8 @@ fn main() {
 
     render::build_camera(&mut ecs);
     gameplay::build_player(&mut ecs);
-
-    //let maze = gameplay::generate_cityscape(10, 10);
-    //gameplay::build_entities(&mut ecs, &maze);
-    gameplay::spawn_obstacle_on_tile(&mut ecs, (0, 2));
-    gameplay::spawn_obstacle_on_tile(&mut ecs, (0, -1));
+    let maze = gameplay::generate_cityscape(10, 10);
+    gameplay::build_entities(&mut ecs, &maze);
 
     let mut events = sdl_context.event_pump().unwrap();
     let mut tick = SystemTime::now();
@@ -94,7 +91,7 @@ fn main() {
 
         render::clear(&Color(0.0, 0.05, 0.05, 1.0));
         render::draw(&mut ecs);
-        render::draw_debug(&mut ecs);
+        // render::draw_debug(&mut ecs);
         window.gl_swap_window();
     }
 }
