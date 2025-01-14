@@ -30,16 +30,13 @@ pub fn draw(ecs: &mut ECS) {
             .downcast_ref::<Lens>()
             .unwrap(),
     );
-    let target = ecs
-        .clone_component::<Transform>(
-            ecs.query(
-                &Query::new()
-                    .with::<CameraTarget>()
-                    .with::<Transform>()
-                    .build(),
-            )[0],
-        )
-        .unwrap();
+    let target_id = ecs.query(
+        &Query::new()
+            .with::<CameraTarget>()
+            .with::<Transform>()
+            .build(),
+    )[0];
+    let target = ecs.clone_component::<Transform>(target_id).unwrap();
     let view_matrix = targeted_view_matrix(
         ecs.get_component::<Transform>(camera)
             .unwrap()
@@ -47,6 +44,12 @@ pub fn draw(ecs: &mut ECS) {
             .downcast_ref::<Transform>()
             .unwrap(),
         &target,
+        ecs.get_component::<CameraTarget>(target_id)
+            .unwrap()
+            .borrow()
+            .downcast_ref::<CameraTarget>()
+            .unwrap()
+            .0,
     );
     let models = ecs.query(&Query::new().with::<Transform>().with::<Model>().build());
     unsafe {
@@ -85,16 +88,13 @@ pub fn draw_debug(ecs: &mut ECS) {
             .downcast_ref::<Lens>()
             .unwrap(),
     );
-    let target = ecs
-        .clone_component::<Transform>(
-            ecs.query(
-                &Query::new()
-                    .with::<CameraTarget>()
-                    .with::<Transform>()
-                    .build(),
-            )[0],
-        )
-        .unwrap();
+    let target_id = ecs.query(
+        &Query::new()
+            .with::<CameraTarget>()
+            .with::<Transform>()
+            .build(),
+    )[0];
+    let target = ecs.clone_component::<Transform>(target_id).unwrap();
     let view_matrix = targeted_view_matrix(
         ecs.get_component::<Transform>(camera)
             .unwrap()
@@ -102,6 +102,12 @@ pub fn draw_debug(ecs: &mut ECS) {
             .downcast_ref::<Transform>()
             .unwrap(),
         &target,
+        ecs.get_component::<CameraTarget>(target_id)
+            .unwrap()
+            .borrow()
+            .downcast_ref::<CameraTarget>()
+            .unwrap()
+            .0,
     );
 
     let ids = ecs.query(
@@ -168,11 +174,11 @@ pub fn projection_matrix(lens: &Lens) -> Mat4 {
     Mat4::perspective_rh(lens.fov, lens.aspect_ratio, lens.near, lens.far)
 }
 
-pub fn targeted_view_matrix(transform: &Transform, target: &Transform) -> Mat4 {
+pub fn targeted_view_matrix(transform: &Transform, target: &Transform, distance: f32) -> Mat4 {
     let mut camera_position = target.position.clone();
-    camera_position.y = 4.0;
-    camera_position.x += f32::cos(radians(transform.rotation.x)) * 12.0;
-    camera_position.z += f32::sin(radians(transform.rotation.x)) * 12.0;
+    camera_position.y = 12.0;
+    camera_position.x += f32::cos(radians(transform.rotation.x)) * distance;
+    camera_position.z += f32::sin(radians(transform.rotation.x)) * distance;
     Mat4::look_at_rh(camera_position, target.position, transform.up())
 }
 

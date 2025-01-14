@@ -194,7 +194,7 @@ pub fn build_player(ecs: &mut ECS) {
         .load_obj_file("assets/models/player.obj")
         .unwrap();
     ecs.attach_component(id, Model::new(mesh)).unwrap();
-    ecs.attach_component(id, CameraTarget()).unwrap();
+    ecs.attach_component(id, CameraTarget(12.0)).unwrap();
     ecs.attach_component(id, KeyboardControls::default())
         .unwrap();
     ecs.attach_component(
@@ -230,7 +230,7 @@ pub fn move_player(ecs: &mut ECS, delta_time: f32) {
         if drive_dir == 0.0 {
             body.force -= body.velocity;
         } else {
-            body.force += transform.forward() * 300.0 * drive_dir * delta_time;
+            body.force += transform.forward() * 120.0 * drive_dir * delta_time;
         }
         body
     })

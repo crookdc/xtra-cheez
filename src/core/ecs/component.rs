@@ -131,4 +131,4 @@ impl Default for Lens {
 }
 
 #[derive(Copy, Clone)]
-pub struct CameraTarget();
+pub struct CameraTarget(pub f32);
