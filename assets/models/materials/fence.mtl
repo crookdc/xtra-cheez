@@ -1,0 +1,21 @@
+# Blender 4.2.3 LTS MTL File: 'Sketchfab_2023_02_26_14_04_43.blend'
+# www.blender.org
+
+newmtl TexturesCom_MetalVarious0026_1_seamless_S
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+illum 1
+map_Kd Fence.png
+
+newmtl rusted_pipe
+Ns 0.000000
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd FencePole.png

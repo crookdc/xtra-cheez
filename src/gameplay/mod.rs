@@ -128,20 +128,20 @@ pub fn build_entities(ecs: &mut ECS, maze: &Maze) {
         }
     }
     // North wall
-    for x in 0..maze.0.len() + 2 {
-        spawn_obstacle_on_tile(ecs, (x as i32 - 1, maze.0[0].len() as i32 + 1));
+    for x in 0..maze.0.len() + 1 {
+        spawn_fence_on_tile(ecs, (x as i32, maze.0[0].len() as i32 + 1), 180.0);
     }
     // South wall
-    for x in 0..maze.0.len() + 2 {
-        spawn_obstacle_on_tile(ecs, (x as i32 - 1, -1));
+    for x in 0..maze.0.len() + 1 {
+        spawn_fence_on_tile(ecs, (x as i32, -1), 0.0);
     }
     // East wall
-    for y in 0..maze.0[0].len() + 2 {
-        spawn_obstacle_on_tile(ecs, (-1, y as i32 - 1));
+    for y in 0..maze.0[0].len() + 1 {
+        spawn_fence_on_tile(ecs, (-1, y as i32), 90.0);
     }
     // West wall
-    for y in 0..maze.0[0].len() + 2 {
-        spawn_obstacle_on_tile(ecs, (maze.0.len() as i32 + 1, y as i32 - 1));
+    for y in 0..maze.0[0].len() + 1 {
+        spawn_fence_on_tile(ecs, (maze.0.len() as i32 + 1, y as i32), 270.0);
     }
 }
 
@@ -163,6 +163,34 @@ pub fn spawn_obstacle_on_tile(ecs: &mut ECS, tile: (i32, i32)) {
             scale: Vec3::new(4.0, 4.0, 4.0),
             position: Vec3::new(8.0 * tile.0 as f32, 0.0, 8.0 * tile.1 as f32),
             rotation: Vec3::default(),
+        },
+    )
+    .unwrap();
+    ecs.attach_component(
+        id,
+        PhysicsBody {
+            mass: 50.0,
+            width: 2.0,
+            depth: 2.0,
+        },
+    )
+    .unwrap()
+}
+
+pub fn spawn_fence_on_tile(ecs: &mut ECS, tile: (i32, i32), y_rot: f32) {
+    let id = ecs.create_entity();
+    let mesh = ecs
+        .get_resource_mut::<MeshLoader>()
+        .unwrap()
+        .load_obj_file("assets/models/fence.obj")
+        .unwrap();
+    ecs.attach_component(id, Model::new(mesh)).unwrap();
+    ecs.attach_component(
+        id,
+        Transform {
+            scale: Vec3::new(4.0, 4.0, 4.0),
+            position: Vec3::new(8.0 * tile.0 as f32, 0.0, 8.0 * tile.1 as f32),
+            rotation: Vec3::new(0.0, y_rot, 0.0),
         },
     )
     .unwrap();
